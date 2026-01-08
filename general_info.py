@@ -100,7 +100,7 @@ def render_general_info():
         with p2:
             st.selectbox("Moisture Regime", MOISTURES, key="gi_moisture")
         with p3:
-            soil_sel = st.selectbox("Soil Type", SOIL_TYPES, key="gi_soil")
+            st.selectbox("Soil Type", SOIL_TYPES, key="gi_soil")
 
         st.divider()
 
@@ -135,4 +135,11 @@ def render_general_info():
         r3_c1.write("Soil Calculation Period")
         r3_c2.write("Years")
         r3_c3.code("20")
-        soil_years = r3_c4.number_input("Period Override", min_value=1, step=1, value=20, key="soil_divisor", label_visibility="collapsed")
+        
+        # We handle the default logic manually here to avoid state conflict
+        current_soil = shared_state.get("soil_divisor") or 20
+        new_soil = r3_c4.number_input("Period Override", min_value=1, step=1, value=int(current_soil), key="soil_divisor_input", label_visibility="collapsed")
+        
+        # Update shared state immediately
+        if new_soil != shared_state.get("soil_divisor"):
+            shared_state.set("soil_divisor", new_soil)

@@ -4,6 +4,7 @@ import pandas as pd
 import shared_state
 import general_info
 import agri
+import forest
 
 # 1. Page Config
 st.set_page_config(page_title="CAFI Mitigation Tool", layout="wide")
@@ -24,17 +25,6 @@ tabs = st.tabs([
 # --- TAB 0: Start / Landing Page ---
 with tabs[0]:
     general_info.render_general_info()
-    
-    st.sidebar.title("Settings")
-    # Soil Input
-    soil_years = st.sidebar.number_input(
-        "Soil Calculation Period (Years)", 
-        min_value=1, 
-        value=int(shared_state.get("soil_divisor") or 20), 
-        step=1,
-        help="The time period over which soil carbon changes are calculated (default 20 years)."
-    )
-    shared_state.set("soil_divisor", soil_years)
 
 # --- TAB 1: Energy ---
 with tabs[1]:
@@ -52,32 +42,29 @@ with tabs[3]:
 
 # --- TAB 4: Forestry ---
 with tabs[4]:
-    st.header("4. Forestry & Conservation")
-    st.info("Forestry module coming soon...")
+    forest.render_forest_module()
 
 # --- TAB 5: Results ---
 with tabs[5]:
     st.header("Results Summary")
     
-    # Retrieve data safely. If it returns None, default to 0.0
-    grand_total = shared_state.get("agri_grand_total") or 0.0
-    results_data = shared_state.get("agri_results_table") or []
+    # Retrieve data safely
+    grand_total_agri = shared_state.get("agri_grand_total") or 0.0
+    grand_total_forest = shared_state.get("forest_grand_total") or 0.0
+    total_combined = grand_total_agri + grand_total_forest
     
     # Display Metric
-    col_metric, col_dummy = st.columns([1,3])
-    col_metric.metric("Grand Total (tCO2e)", f"{grand_total:,.2f}")
+    st.metric("Total Project Emissions Reduction", f"{total_combined:,.2f} tCO2e")
 
+    # Detailed Breakdown for Agriculture
+    results_data = shared_state.get("agri_results_table") or []
     if results_data:
-        st.subheader("Detailed Breakdown per Activity")
+        st.subheader("Agriculture Breakdown")
         df_res = pd.DataFrame(results_data)
-        
-        # Display Table
         st.dataframe(
             df_res, 
             column_config={
                 "Emission Reduction": st.column_config.NumberColumn(format="%.2f"),
-                "Ref AGB": st.column_config.NumberColumn(format="%.2f"),
-                "Ref Soil": st.column_config.NumberColumn(format="%.2f"),
             },
             use_container_width=True
         )
@@ -90,8 +77,6 @@ with tabs[5]:
                 x="Section", 
                 y="Emission Reduction", 
                 color="Crop", 
-                title="Reductions by Crop System"
+                title="Agri Reductions by Crop System"
             )
             st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("No calculations performed yet. Go to the Agriculture tab and click 'Calculate Agriculture Emissions' to see results here.")
