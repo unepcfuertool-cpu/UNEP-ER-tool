@@ -25,9 +25,13 @@ def render_agri_module():
 
     # --- HELPER: MASTER TABLE RENDERER ---
     def render_section(key_prefix):
-        # Keys
-        key_main = f"main_{key_prefix}"
-        key_tier3 = f"tier3_{key_prefix}"
+        # Unique keys for this section
+        # "storage_" keys hold the actual dataframe data
+        # "editor_" keys are for the streamlit widgets
+        storage_key_main = f"storage_main_{key_prefix}"
+        storage_key_tier3 = f"storage_tier3_{key_prefix}"
+        widget_key_main = f"editor_main_{key_prefix}"
+        widget_key_tier3 = f"editor_tier3_{key_prefix}"
 
         # Columns - Left Table
         cols_main = [
@@ -45,7 +49,7 @@ def render_agri_module():
             "Total GHG emission reduced (tCO2e)"
         ]
 
-        # Columns - Right Table
+        # Columns - Right Table (Full Titles)
         cols_tier3 = [
             "Reference Crop (Read-only)",
             "Emission factors (tC/ha/year) Tier 3 - Above-ground", 
@@ -56,21 +60,25 @@ def render_agri_module():
             "Removal factors Tier 3 - Residue"
         ]
 
-        # Initialize State
-        if key_main not in st.session_state:
-            st.session_state[key_main] = pd.DataFrame(columns=cols_main)
-        if key_tier3 not in st.session_state:
-            st.session_state[key_tier3] = pd.DataFrame(columns=cols_tier3)
+        # --- 1. INITIALIZE STORAGE IF MISSING ---
+        if storage_key_main not in st.session_state:
+            st.session_state[storage_key_main] = pd.DataFrame(columns=cols_main)
+        if storage_key_tier3 not in st.session_state:
+            st.session_state[storage_key_tier3] = pd.DataFrame(columns=cols_tier3)
 
         # Layout
-        col_left, col_right = st.columns([1.5, 1.2]) # Adjusted ratio for better visibility
+        col_left, col_right = st.columns([1.5, 1.2])
 
-        # --- LEFT: ACTIVITY DATA ---
+        # --- 2. RENDER LEFT TABLE (ACTIVITY DATA) ---
         with col_left:
             st.markdown("**1. Activity Data & Defaults**")
+            
+            # Load current data from storage
+            current_main_df = st.session_state[storage_key_main]
+            
             edited_main = st.data_editor(
-                st.session_state[key_main],
-                key=f"editor_{key_main}",
+                current_main_df,
+                key=widget_key_main,
                 num_rows="dynamic",
                 column_config={
                     "Perennial cropping system deployed": st.column_config.SelectboxColumn("Perennial cropping system deployed", options=crop_list, width="medium", required=True),
@@ -78,55 +86,63 @@ def render_agri_module():
                     "Management options - Tillage management": st.column_config.SelectboxColumn("Management options - Tillage management", options=tillage_opts, width="medium", required=True),
                     "Management options - Input of organic materials": st.column_config.SelectboxColumn("Management options - Input of organic materials", options=input_opts, width="medium", required=True),
                     "Residue management": st.column_config.SelectboxColumn("Residue management", options=residue_opts, width="small", required=True),
-                    
-                    # Read-only Defaults (Width adjusted to show text)
+                    # Read-only Defaults
                     "Emission factors (tC/ha/year) default - Above-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Above-ground", width="medium", disabled=True),
                     "Emission factors (tC/ha/year) default - Below-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Below-ground", width="medium", disabled=True),
                     "Emission factors (tC/ha/year) default - Soil carbon": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Soil carbon", width="medium", disabled=True),
                     "Removal factors default - Tillage": st.column_config.NumberColumn("Removal factors default - Tillage", width="small", disabled=True),
                     "Removal factors default - Input": st.column_config.NumberColumn("Removal factors default - Input", width="small", disabled=True),
                     "Removal factors default - Residue": st.column_config.NumberColumn("Removal factors default - Residue", width="small", disabled=True),
-                    
                     "Total GHG emission reduced (tCO2e)": st.column_config.NumberColumn("Total GHG emission reduced (tCO2e)", format="%.2f", width="medium", disabled=True)
                 },
                 use_container_width=True
             )
-            st.session_state[key_main] = edited_main
+            # Update storage immediately with Left Table edits
+            st.session_state[storage_key_main] = edited_main
 
-        # --- SYNC LOGIC ---
-        current_tier3 = st.session_state[key_tier3]
+        # --- 3. SYNC LOGIC (CRITICAL STEP) ---
+        # We must align the Right Table (Tier 3) storage to match the Left Table's row count *before* rendering the Right Table.
+        
+        current_tier3_df = st.session_state[storage_key_tier3]
         rows_main = len(edited_main)
-        rows_tier3 = len(current_tier3)
+        rows_tier3 = len(current_tier3_df)
 
-        # 1. Resize Tier 3 DataFrame to match Main
         if rows_main > rows_tier3:
+            # Add missing rows
             rows_to_add = rows_main - rows_tier3
-            empty_data = {col: [None] * rows_to_add for col in cols_tier3}
-            df_new_rows = pd.DataFrame(empty_data)
-            current_tier3 = pd.concat([current_tier3, df_new_rows], ignore_index=True)
+            # Create empty rows with 0.0 defaults for numeric cols
+            new_data = {col: [0.0 if i > 0 else None for i in range(len(cols_tier3))] for col in cols_tier3}
+            # Adjust first col (Reference Crop) to be None initially
+            new_data["Reference Crop (Read-only)"] = [None] * (len(cols_tier3) - len(new_data)) # Fix key issue
+            
+            df_new = pd.DataFrame(new_data)
+            # Ensure correct structure
+            df_new = pd.DataFrame(
+                [[None] + [0.0]*(len(cols_tier3)-1)] * rows_to_add, 
+                columns=cols_tier3
+            )
+            current_tier3_df = pd.concat([current_tier3_df, df_new], ignore_index=True)
+            
         elif rows_main < rows_tier3:
-            current_tier3 = current_tier3.iloc[:rows_main]
+            # Remove extra rows
+            current_tier3_df = current_tier3_df.iloc[:rows_main]
 
-        # 2. Update Reference Labels
+        # Sync Reference Crop Names
         if rows_main > 0:
-            current_tier3["Reference Crop (Read-only)"] = edited_main["Perennial cropping system deployed"].values
-            numeric_cols = cols_tier3[1:]
-            current_tier3[numeric_cols] = current_tier3[numeric_cols].fillna(0.0)
+            current_tier3_df["Reference Crop (Read-only)"] = edited_main["Perennial cropping system deployed"].values
 
-        st.session_state[key_tier3] = current_tier3
-
-        # --- RIGHT: LOCAL DATA ---
+        # --- 4. RENDER RIGHT TABLE (LOCAL DATA) ---
         with col_right:
             st.markdown("**2. Local Data**")
             
             edited_tier3 = st.data_editor(
-                st.session_state[key_tier3],
-                key=f"editor_{key_tier3}",
-                num_rows="fixed",
+                current_tier3_df,
+                key=widget_key_tier3,
+                num_rows="fixed", # Locked to follow Left Table
                 column_config={
                     "Reference Crop (Read-only)": st.column_config.TextColumn("Reference Crop", disabled=True, width="medium"),
                     
-                    # Adjusted widths to show full titles
+                    # Full Titles
                     "Emission factors (tC/ha/year) Tier 3 - Above-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) Tier 3 - Above-ground", min_value=0.0, width="medium"),
                     "Emission factors (tC/ha/year) Tier 3 - Below-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) Tier 3 - Below-ground", min_value=0.0, width="medium"),
                     "Emission factors (tC/ha/year) Tier 3 - Soil carbon": st.column_config.NumberColumn("Emission factors (tC/ha/year) Tier 3 - Soil carbon", min_value=0.0, width="medium"),
@@ -137,10 +153,11 @@ def render_agri_module():
                 },
                 use_container_width=True
             )
-            st.session_state[key_tier3] = edited_tier3
+            
+            # Update storage with Right Table edits
+            st.session_state[storage_key_tier3] = edited_tier3
 
         return edited_main, edited_tier3
-
 
     # --- RENDER TABS ---
     with tab1:
@@ -168,13 +185,16 @@ def render_agri_module():
         def calculate_tab(df_m, df_t):
             total_tab = 0.0
             
+            # Iterate through synced dataframes
             for index, row in df_m.iterrows():
                 crop = row.get("Perennial cropping system deployed")
                 area = float(row.get("Area (ha)") or 0)
                 
                 if crop and area > 0:
+                    # Defaults
                     defaults = params["agb_bgb_soil"].get(crop, (0.0, 0.0, 0.0))
                     
+                    # Update Defaults in Main Table (Visual only, for next render)
                     df_m.at[index, "Emission factors (tC/ha/year) default - Above-ground"] = defaults[0]
                     df_m.at[index, "Emission factors (tC/ha/year) default - Below-ground"] = defaults[1]
                     df_m.at[index, "Emission factors (tC/ha/year) default - Soil carbon"] = defaults[2]
@@ -191,6 +211,7 @@ def render_agri_module():
                     df_m.at[index, "Removal factors default - Input"] = def_rf_i
                     df_m.at[index, "Removal factors default - Residue"] = def_rf_r
 
+                    # Local Overrides (Tier 3)
                     try:
                         row_t3 = df_t.iloc[index]
                         
@@ -201,10 +222,12 @@ def render_agri_module():
                         u_rf_t = float(row_t3.get("Removal factors Tier 3 - Tillage") or 0) or def_rf_t
                         u_rf_i = float(row_t3.get("Removal factors Tier 3 - Input") or 0) or def_rf_i
                         u_rf_r = float(row_t3.get("Removal factors Tier 3 - Residue") or 0) or def_rf_r
-                    except IndexError:
+                    except (IndexError, KeyError):
+                        # Fallback if synchronization failed
                         u_ef_agb, u_ef_bgb, u_ef_soil = defaults
                         u_rf_t, u_rf_i, u_rf_r = def_rf_t, def_rf_i, def_rf_r
 
+                    # Calculation
                     soil_impact = u_ef_soil * u_rf_t * u_rf_i * u_rf_r
                     biomass_impact = u_ef_agb + u_ef_bgb
                     
