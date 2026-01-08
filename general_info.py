@@ -12,8 +12,8 @@ try:
     CLIMATE = imported_data.CLIMATES
     MOISTURE = imported_data.MOISTURES
 except ImportError:
-    SOIL_TYPE = ["Spodic soils", "Volcanic soils", "Clay soils", "Sandy soils", "Loam soils", "Wetland/Organic soils"]
-    CLIMATE = ["Tropical montane", "Tropical wet", "Tropical dry"]
+    SOIL_TYPE = ["Clay soils", "Sandy soils", "Spodic soils", "Volcanic soils", "Wetland soils", Organic soils"]
+    CLIMATE = ["Tropical lowland", "Tropical montane"]
     MOISTURE = ["Moist", "Wet", "Dry"]
 
 def render_general_info():
@@ -55,10 +55,10 @@ def render_general_info():
                 country_list = [
                     "Cameroon", 
                     "Central African Republic", 
-                    "Republic of Congo", 
                     "Democratic Republic of the Congo", 
                     "Equatorial Guinea", 
-                    "Gabon"
+                    "Gabon", 
+                    "Republic of Congo"
                 ]
             elif region == "Southeast Asia":
                 country_list = ["Indonesia"]
