@@ -60,7 +60,7 @@ EF_SUBSTITUTION_DATA = {
 
 # Carbon intensity of electricity (Congo Basin)
 C_INTENSITY_DATA = {
-    "Country": ["Cameroon", "CAR", "Congo", "DRC", "Eq. Guinea", "Gabon"],
+    "Country": ["Cameroon", "CAR", "Congo", "DRC", "Equatorial Guinea", "Gabon"],
     "kgCO2/MWh": [305.42, 0.00, 700.00, 24.46, 591.84, 491.60]
 }
 
