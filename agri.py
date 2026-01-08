@@ -28,7 +28,7 @@ def render_agri_module():
         # Unique key for this section's dataframe
         key_df = f"df_{key_prefix}"
 
-        # Define ALL columns in one list
+        # Define ALL columns in one list with FULL TITLES
         cols = [
             # --- 1. ACTIVITY DATA ---
             "Perennial cropping system deployed", 
@@ -70,30 +70,30 @@ def render_agri_module():
             num_rows="dynamic",
             column_config={
                 # --- SECTION 1: INPUTS ---
-                "Perennial cropping system deployed": st.column_config.SelectboxColumn("1. Cropping System", options=crop_list, width="medium", required=True),
-                "Area (ha)": st.column_config.NumberColumn("2. Area (ha)", min_value=0.0, format="%.2f", width="small"),
-                "Management options - Tillage management": st.column_config.SelectboxColumn("3. Tillage", options=tillage_opts, width="medium", required=True),
-                "Management options - Input of organic materials": st.column_config.SelectboxColumn("4. Inputs", options=input_opts, width="medium", required=True),
-                "Residue management": st.column_config.SelectboxColumn("5. Residue", options=residue_opts, width="small", required=True),
+                "Perennial cropping system deployed": st.column_config.SelectboxColumn("Perennial cropping system deployed", options=crop_list, width="medium", required=True),
+                "Area (ha)": st.column_config.NumberColumn("Area (ha)", min_value=0.0, format="%.2f", width="small"),
+                "Management options - Tillage management": st.column_config.SelectboxColumn("Management options - Tillage management", options=tillage_opts, width="medium", required=True),
+                "Management options - Input of organic materials": st.column_config.SelectboxColumn("Management options - Input of organic materials", options=input_opts, width="medium", required=True),
+                "Residue management": st.column_config.SelectboxColumn("Residue management", options=residue_opts, width="small", required=True),
                 
-                # --- SECTION 2: DEFAULTS (Read-Only, Gray) ---
-                "Emission factors (tC/ha/year) default - Above-ground": st.column_config.NumberColumn("Def. EF AGB", disabled=True, width="small"),
-                "Emission factors (tC/ha/year) default - Below-ground": st.column_config.NumberColumn("Def. EF BGB", disabled=True, width="small"),
-                "Emission factors (tC/ha/year) default - Soil carbon": st.column_config.NumberColumn("Def. EF Soil", disabled=True, width="small"),
-                "Removal factors default - Tillage": st.column_config.NumberColumn("Def. RF Tillage", disabled=True, width="small"),
-                "Removal factors default - Input": st.column_config.NumberColumn("Def. RF Input", disabled=True, width="small"),
-                "Removal factors default - Residue": st.column_config.NumberColumn("Def. RF Residue", disabled=True, width="small"),
+                # --- SECTION 2: DEFAULTS (Read-Only) ---
+                "Emission factors (tC/ha/year) default - Above-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Above-ground", disabled=True, width="medium"),
+                "Emission factors (tC/ha/year) default - Below-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Below-ground", disabled=True, width="medium"),
+                "Emission factors (tC/ha/year) default - Soil carbon": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Soil carbon", disabled=True, width="medium"),
+                "Removal factors default - Tillage": st.column_config.NumberColumn("Removal factors default - Tillage", disabled=True, width="medium"),
+                "Removal factors default - Input": st.column_config.NumberColumn("Removal factors default - Input", disabled=True, width="medium"),
+                "Removal factors default - Residue": st.column_config.NumberColumn("Removal factors default - Residue", disabled=True, width="medium"),
                 
                 # --- SECTION 3: TIER 3 (Editable) ---
-                "Emission factors (tC/ha/year) Tier 3 - Above-ground": st.column_config.NumberColumn("Local EF AGB (Tier 3)", min_value=0.0, width="small"),
-                "Emission factors (tC/ha/year) Tier 3 - Below-ground": st.column_config.NumberColumn("Local EF BGB (Tier 3)", min_value=0.0, width="small"),
-                "Emission factors (tC/ha/year) Tier 3 - Soil carbon": st.column_config.NumberColumn("Local EF Soil (Tier 3)", min_value=0.0, width="small"),
-                "Removal factors Tier 3 - Tillage": st.column_config.NumberColumn("Local RF Tillage (Tier 3)", min_value=0.0, width="small"),
-                "Removal factors Tier 3 - Input": st.column_config.NumberColumn("Local RF Input (Tier 3)", min_value=0.0, width="small"),
-                "Removal factors Tier 3 - Residue": st.column_config.NumberColumn("Local RF Residue (Tier 3)", min_value=0.0, width="small"),
+                "Emission factors (tC/ha/year) Tier 3 - Above-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) Tier 3 - Above-ground", min_value=0.0, width="medium"),
+                "Emission factors (tC/ha/year) Tier 3 - Below-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) Tier 3 - Below-ground", min_value=0.0, width="medium"),
+                "Emission factors (tC/ha/year) Tier 3 - Soil carbon": st.column_config.NumberColumn("Emission factors (tC/ha/year) Tier 3 - Soil carbon", min_value=0.0, width="medium"),
+                "Removal factors Tier 3 - Tillage": st.column_config.NumberColumn("Removal factors Tier 3 - Tillage", min_value=0.0, width="medium"),
+                "Removal factors Tier 3 - Input": st.column_config.NumberColumn("Removal factors Tier 3 - Input", min_value=0.0, width="medium"),
+                "Removal factors Tier 3 - Residue": st.column_config.NumberColumn("Removal factors Tier 3 - Residue", min_value=0.0, width="medium"),
                 
                 # --- SECTION 4: RESULT ---
-                "Total GHG emission reduced (tCO2e)": st.column_config.NumberColumn("Total Reduced (tCO2e)", format="%.2f", disabled=True, width="medium")
+                "Total GHG emission reduced (tCO2e)": st.column_config.NumberColumn("Total GHG emission reduced (tCO2e)", format="%.2f", disabled=True, width="medium")
             },
             use_container_width=True
         )
