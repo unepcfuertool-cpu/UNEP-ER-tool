@@ -27,7 +27,7 @@ EF_COOKSTOVES_DATA = {
 
 # Quantity of fuel used (ton/household/year)
 FUEL_QTY_DATA = {
-    "Fuel Type": ["Wood", "Charcoal", "Other"],
+    "Fuel consumption of a stove (ton/household/year)": ["Wood", "Charcoal", "Other"],
     "Value": [5.475, 5.475, 5.475]
 }
 
