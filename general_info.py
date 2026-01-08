@@ -167,4 +167,11 @@ def render_general_info():
     with r2c3:
         make_param_box("Energy generated", parameters.ENERGY_GEN_DATA)
 
-    make_param_box("
+    make_param_box("Emission factor charcoal production (g/kg) [default]", parameters.EF_CHARCOAL_DATA)
+
+    r4c1, r4c2 = st.columns([1.5, 1])
+    with r4c1:
+        make_param_box("Emission factor of substitution fuel [default]", parameters.EF_SUBSTITUTION_DATA)
+    with r4c2:
+        make_param_box("Carbon intensity of electricity in the Congo Basin [default]", parameters.C_INTENSITY_DATA)
+        make_param_box("Emission factor RIL-C", parameters.RIL_C_DATA)
