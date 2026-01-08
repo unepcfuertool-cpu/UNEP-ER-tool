@@ -15,7 +15,7 @@ except ImportError:
     MOISTURES = ["Moist", "Wet", "Dry"]
 
 def render_general_info():
-    # --- Header ---
+    # --- Title ---
     st.markdown("""
         <div style='background-color: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px;'>
             <h2 style='color: #2E86C1; margin:0; text-align: center;'>CAFI Mitigation Tool</h2>
@@ -23,13 +23,13 @@ def render_general_info():
     """, unsafe_allow_html=True)
 
     # ==========================================
-    # 1. DESCRIPTION (Project & Site)
+    # 1. DESCRIPTION
     # ==========================================
     st.markdown("### 1. Description")
     with st.container(border=True):
         col1, col2 = st.columns(2)
         
-        # LEFT: Project Identity
+        # Left: Project Details
         with col1:
             st.markdown("#### **Project Details**")
             st.text_input("User Name", key="gi_user_name")
@@ -39,17 +39,18 @@ def render_general_info():
             st.text_input("Executing Agency", key="gi_executing_agency")
             st.number_input("Project Cost (USD)", key="gi_project_cost", step=1000)
 
-        # RIGHT: Site & Duration
+        # Right: Site & Duration
         with col2:
             st.markdown("#### **Project Site & Duration**")
             
-            # Region & Country
+            # Region
             region_opts = ["Central Africa", "Indonesia", "Brazil"]
             curr_reg = shared_state.get("gi_region") or "Central Africa"
             idx = region_opts.index(curr_reg) if curr_reg in region_opts else 0
             region = st.selectbox("Region", region_opts, index=idx)
             if region != shared_state.get("gi_region"): shared_state.set("gi_region", region)
 
+            # Country
             if region == "Central Africa":
                 c_options = ["Cameroon", "Central African Republic", "Republic of Congo", "Democratic Republic of the Congo", "Equatorial Guinea", "Gabon"]
             else:
@@ -86,49 +87,52 @@ def render_general_info():
             st.checkbox("4. Forestry & Conservation", key="check_forest")
 
     # ==========================================
-    # 3. PARAMETERS (Listed vs Filled In)
+    # 3. PARAMETERS
     # ==========================================
     st.markdown("### 3. Parameters")
     with st.container(border=True):
-        st.caption("Select your parameters. Default values are listed below; enter a custom value in the 'Override' box only if necessary.")
-        
-        # --- ROW 1: CLIMATE & MOISTURE ---
-        p1, p2 = st.columns(2)
+        st.caption("Review default parameters below. Enter a value in 'Custom Override' only if specific local data is available.")
+
+        # --- ROW 1: Environmental Selectors ---
+        p1, p2, p3 = st.columns(3)
         with p1:
             st.selectbox("Climate Zone", CLIMATES, key="gi_climate")
         with p2:
             st.selectbox("Moisture Regime", MOISTURES, key="gi_moisture")
+        with p3:
+            soil_sel = st.selectbox("Soil Type", SOIL_TYPES, key="gi_soil")
 
         st.divider()
 
-        # --- ROW 2: SOIL (The "Listed vs Filled In" Logic) ---
-        # This structure allows you to see the default, but fill in a custom one
+        # --- ROW 2: The "Grid" for Values ---
+        # Columns: [ Parameter Name ] [ Unit ] [ Default Value ] [ Custom Override ]
         
-        s1, s2, s3 = st.columns([2, 1, 1])
-        with s1:
-            soil_select = st.selectbox("Soil Type", SOIL_TYPES, key="gi_soil")
+        # Headers
+        h1, h2, h3, h4 = st.columns([2, 1, 1.5, 2])
+        h1.markdown("**Parameter**")
+        h2.markdown("**Unit**")
+        h3.markdown("**Default**")
+        h4.markdown("**Custom Override**")
         
-        with s2:
-            # Here we simulate the "Listed" value. 
-            # In a real scenario, this would look up the specific value from parameters.py
-            # For now, we show a placeholder derived from the name to prove the concept.
-            default_soc = 47.0 # Placeholder default
-            st.markdown(f"**Default SOC**")
-            st.markdown(f"In {soil_select}:")
-            st.markdown(f"`{default_soc} tC/ha`") 
-            
-        with s3:
-            # Here is the "To be filled in if necessary" part
-            st.number_input("Custom SOC (Override)", min_value=0.0, key="gi_soil_override", help="Leave 0 to use the Default value.")
+        st.markdown("---") # Thin line
 
-        st.divider()
+        # ITEM 1: Soil Organic Carbon (SOC)
+        r1_c1, r1_c2, r1_c3, r1_c4 = st.columns([2, 1, 1.5, 2])
+        r1_c1.write("Soil Organic Carbon (SOC)")
+        r1_c2.write("tC/ha")
+        r1_c3.code("47.0") # Placeholder default
+        r1_c4.number_input("SOC Override", min_value=0.0, key="gi_soc_override", label_visibility="collapsed")
 
-        # --- ROW 3: OTHER GLOBAL PARAMS (Example) ---
-        o1, o2, o3 = st.columns([2, 1, 1])
-        with o1:
-            st.markdown("**Global Discount Rate**")
-            st.caption("Used for Net Present Value calculations (if applicable).")
-        with o2:
-            st.markdown("**Default:** `10%`")
-        with o3:
-            st.number_input("Custom Rate (%)", min_value=0.0, value=0.0, key="gi_discount_override", help="Leave 0 to use Default")
+        # ITEM 2: Discount Rate
+        r2_c1, r2_c2, r2_c3, r2_c4 = st.columns([2, 1, 1.5, 2])
+        r2_c1.write("Discount Rate")
+        r2_c2.write("%")
+        r2_c3.code("10%")
+        r2_c4.number_input("Rate Override", min_value=0.0, key="gi_discount_override", label_visibility="collapsed")
+
+        # ITEM 3: Soil Calculation Period
+        r3_c1, r3_c2, r3_c3, r3_c4 = st.columns([2, 1, 1.5, 2])
+        r3_c1.write("Soil Calculation Period")
+        r3_c2.write("Years")
+        r3_c3.code("20")
+        soil_years = r3_c4.number_input("Period Override", min_value=1, step=1, value=20, key="soil_divisor", label_visibility="collapsed")
