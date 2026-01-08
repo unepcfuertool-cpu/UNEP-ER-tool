@@ -1,7 +1,7 @@
 # parameters.py
 import pandas as pd
 
-# --- 1. GLOBAL CONSTANTS (Top Row) ---
+# --- 1. GLOBAL CONSTANTS ---
 GWP_DEFAULTS = {
     "CO2": 1,
     "CH4": 34,
@@ -25,7 +25,7 @@ EF_COOKSTOVES_DATA = {
     "Black carbon": [1.06, 0.38, 0]
 }
 
-# Quantity of fuel used (ton/household/year)
+# Quantity of fuel used
 FUEL_QTY_DATA = {
     "Fuel consumption of a stove (ton/household/year)": ["Wood", "Charcoal", "Other"],
     "Value": [5.475, 5.475, 5.475]
@@ -60,7 +60,7 @@ EF_SUBSTITUTION_DATA = {
 
 # Carbon intensity of electricity (Congo Basin)
 C_INTENSITY_DATA = {
-    "Country": ["Cameroon", "CAR", "Congo", "DRC", "Equatorial Guinea", "Gabon"],
+    "Country": ["Cameroon", "CAR", "Congo", "DRC", "Eq. Guinea", "Gabon"],
     "kgCO2/MWh": [305.42, 0.00, 700.00, 24.46, 591.84, 491.60]
 }
 
@@ -75,12 +75,27 @@ RIL_C_DATA = {
     "Value": [0.3092, 0.0257, 0.4500, 0.0132]
 }
 
-# --- 4. AGRI (Helper) ---
-try:
-    import imported_data
-    AGRI_DATA = imported_data.AGRI_CROP_DATA
-except ImportError:
-    AGRI_DATA = {}
+# --- 4. AGRICULTURE DATA ---
+# Format: "Crop Name": (AGB_Default, BGB_Default, Soil_Default)
+# These are the defaults corresponding to the list you provided.
+# I have used placeholders (0.0) for the new crops (Oil Palm, Rubber) where defaults were not in the original list.
+AGRI_CROP_DATA = {
+    "Alley cropping": (2.75, 0.59, 27.3),
+    "Hedgerow": (0.47, 0.11, 27.3),
+    "Multistrata": (2.98, 0.72, 27.3),
+    "Parkland": (0.59, 0.21, 27.3),
+    "Perennial fallow": (5.3, 1.27, 27.3),
+    "Shade perennial": (1.82, 0.44, 27.3),
+    "Silvopasture": (2.91, 0.79, 27.3),
+    "Silvoarable": (0.0, 0.0, 0.0),   # Placeholder, please update if you have specific default
+    "Oil Palm": (0.0, 0.0, 0.0),      # Placeholder
+    "Rubber": (0.0, 0.0, 0.0),        # Placeholder
+    "Tea": (1.82, 0.44, 27.3),        # Using Shaded Perennial proxy or 0 if preferred
+}
 
 def get_agri_params(country):
-    return {"agb_bgb_soil": AGRI_DATA}
+    # Returns the specific list regardless of country to ensure dropdowns always work
+    return {
+        "agb_bgb_soil": AGRI_CROP_DATA,
+        "residue_multiplier": 0.47
+    }

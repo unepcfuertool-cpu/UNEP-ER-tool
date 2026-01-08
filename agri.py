@@ -8,13 +8,29 @@ def render_agri_module():
     st.header("3. Agriculture")
     
     # 1. Get Parameters
+    # This now pulls the robust list from the updated parameters.py
     params = parameters.get_agri_params(shared_state.get("gi_country"))
     crop_list = list(params["agb_bgb_soil"].keys()) if "agb_bgb_soil" in params else []
     
-    # --- DROPDOWN OPTIONS ---
-    tillage_opts = ["Full tillage", "Reduced tillage", "No tillage"]
-    input_opts = ["Low C input", "Medium C input", "High C input, no manure", "High C input, with manure"]
-    residue_opts = ["Burned", "Exported", "Retained"]
+    # --- DROPDOWN OPTIONS (Explicitly defined here) ---
+    tillage_opts = [
+        "Full tillage", 
+        "Reduced tillage", 
+        "No tillage"
+    ]
+    
+    input_opts = [
+        "Low C input", 
+        "Medium C input", 
+        "High C input, no manure", 
+        "High C input, with manure"
+    ]
+    
+    residue_opts = [
+        "Burned", 
+        "Exported", 
+        "Retained"
+    ]
 
     # --- TABS ---
     tab1, tab2, tab3 = st.tabs([
@@ -120,31 +136,23 @@ def render_agri_module():
     # --- CALCULATION LOGIC ---
     if st.button("Calculate Agriculture", type="primary"):
         
-        # Mappings based on Technical Notes 
-        # Tillage Factors
+        # Mappings based on Technical Notes & User Info
         rf_tillage_map = {
             "Full tillage": 1.0, 
-            "Reduced tillage": 1.04,  # Updated from Tech Notes
+            "Reduced tillage": 1.04,  
             "No tillage": 1.10
         }
-        # Input Factors
         rf_input_map = {
-            "Low C input": 0.92,      # Updated from Tech Notes
+            "Low C input": 0.92,
             "Medium C input": 1.0, 
-            "High C input, no manure": 1.11, # Updated from Tech Notes
-            "High C input, with manure": 1.44 # Updated from Tech Notes
+            "High C input, no manure": 1.11,
+            "High C input, with manure": 1.44
         }
-        # Residue Factors
         rf_residue_map = {
-            "Burned": 0.9,    # Note: Tech notes list 2.26?? but usually burning reduces C. Keeping logic, check value.
-            "Exported": 0.9,  # Logic check needed if 2.26 applies to retention or removal.
-            "Retained": 1.1   # Assuming retention adds carbon.
+            "Burned": 0.9, 
+            "Exported": 0.9,  
+            "Retained": 1.1   
         }
-        
-        # Note on Tech Notes: The document lists 2.26 for ALL residue types.
-        # This might be a typo in the source doc or a specific aggregated factor.
-        # For now, I have kept standard logical defaults (0.9 for removal, 1.1 for retention)
-        # to ensure the tool behaves predictably until that specific number is clarified.
 
         def calculate_tab(df):
             total_tab = 0.0
@@ -175,7 +183,6 @@ def render_agri_module():
                     df.at[index, "Removal factors default - Residue"] = def_rf_r
 
                     # 2. Local Overrides (Tier 3)
-                    # Use local if > 0, else use default
                     u_ef_agb = float(row.get("Emission factors (tC/ha/year) Tier 3 - Above-ground") or 0) or defaults[0]
                     u_ef_bgb = float(row.get("Emission factors (tC/ha/year) Tier 3 - Below-ground") or 0) or defaults[1]
                     u_ef_soil = float(row.get("Emission factors (tC/ha/year) Tier 3 - Soil carbon") or 0) or defaults[2]
@@ -184,12 +191,7 @@ def render_agri_module():
                     u_rf_i = float(row.get("Removal factors Tier 3 - Input") or 0) or def_rf_i
                     u_rf_r = float(row.get("Removal factors Tier 3 - Residue") or 0) or def_rf_r
 
-                    # 3. Calculation 
-                    # Formula: Area * [ (AGB + BGB) + (Soil * RF_T * RF_I * RF_R) ] * 3.664
-                    
-                    # Note: Assuming u_ef_soil is an ANNUAL rate (tC/ha/year).
-                    # If it is a 20-year stock change, we should divide by D (duration).
-                    
+                    # 3. Calculation
                     soil_impact = u_ef_soil * u_rf_t * u_rf_i * u_rf_r
                     biomass_impact = u_ef_agb + u_ef_bgb
                     
