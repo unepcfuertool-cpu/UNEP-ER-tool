@@ -12,7 +12,8 @@ try:
     CLIMATE = imported_data.CLIMATES
     MOISTURE = imported_data.MOISTURES
 except ImportError:
-    SOIL_TYPE = ["Clay soils", "Sandy soils", "Spodic soils", "Volcanic soils", "Wetland soils", Organic soils"]
+    # Fixed the missing quote on "Organic soils" below
+    SOIL_TYPE = ["Clay soils", "Sandy soils", "Spodic soils", "Volcanic soils", "Wetland soils", "Organic soils"]
     CLIMATE = ["Tropical lowland", "Tropical montane"]
     MOISTURE = ["Moist", "Wet", "Dry"]
 
@@ -55,10 +56,10 @@ def render_general_info():
                 country_list = [
                     "Cameroon", 
                     "Central African Republic", 
+                    "Republic of Congo", 
                     "Democratic Republic of the Congo", 
                     "Equatorial Guinea", 
-                    "Gabon", 
-                    "Republic of Congo"
+                    "Gabon"
                 ]
             elif region == "Southeast Asia":
                 country_list = ["Indonesia"]
@@ -122,57 +123,4 @@ def render_general_info():
             if custom_component:
                 custom_component()
             elif data_dict:
-                st.dataframe(pd.DataFrame(data_dict), hide_index=True, use_container_width=True)
-
-    r1c1, r1c2, r1c3 = st.columns(3)
-    
-    with r1c1:
-        with st.container(border=True):
-            st.markdown("**Global warming potential**")
-            h1, h2, h3 = st.columns([1.5, 1, 1])
-            h2.caption("Tier 1 (Def)")
-            h3.caption("Tier 2 (Any)")
-            for gas, val in parameters.GWP_DEFAULTS.items():
-                c1, c2, c3 = st.columns([1.5, 1, 1])
-                c1.write(gas)
-                c2.write(val)
-                c3.text_input(f"t2_{gas}", label_visibility="collapsed", key=f"gwp_{gas}")
-
-    with r1c2:
-        with st.container(border=True):
-            st.markdown("**Reference soil organic carbon**")
-            h1, h2, h3 = st.columns([1.5, 1, 1])
-            h2.caption("Tier 1 (Def)")
-            h3.caption("Tier 2 (Any)")
-            c1, c2, c3 = st.columns([1.5, 1, 1])
-            c1.write("SOC (tC/ha)")
-            c2.write(parameters.REF_SOC_DEFAULT)
-            c3.text_input("t2_soc", label_visibility="collapsed", key="soc_ref")
-
-    with r1c3:
-        with st.container(border=True):
-            st.markdown("**Carbon fraction**")
-            h1, h2, h3 = st.columns([1.5, 1, 1])
-            h2.caption("Tier 1 (Def)")
-            h3.caption("Tier 2 (Any)")
-            c1, c2, c3 = st.columns([1.5, 1, 1])
-            c1.write("Carbon fraction")
-            c2.write(parameters.CARBON_FRACTION_DEFAULT)
-            c3.text_input("t2_cf", label_visibility="collapsed", key="c_fract")
-
-    r2c1, r2c2, r2c3 = st.columns([2, 1.5, 1])
-    with r2c1:
-        make_param_box("Emission factor traditional cookstoves (g/kg) [default]", parameters.EF_COOKSTOVES_DATA)
-    with r2c2:
-        make_param_box("Quantity of fuel used", parameters.FUEL_QTY_DATA)
-    with r2c3:
-        make_param_box("Energy generated", parameters.ENERGY_GEN_DATA)
-
-    make_param_box("Emission factor charcoal production (g/kg) [default]", parameters.EF_CHARCOAL_DATA)
-
-    r4c1, r4c2 = st.columns([1.5, 1])
-    with r4c1:
-        make_param_box("Emission factor of substitution fuel [default]", parameters.EF_SUBSTITUTION_DATA)
-    with r4c2:
-        make_param_box("Carbon intensity of electricity in the Congo Basin [default]", parameters.C_INTENSITY_DATA)
-        make_param_box("Emission factor RIL-C", parameters.RIL_C_DATA)
+                st.dataframe(pd.DataFrame(data_
