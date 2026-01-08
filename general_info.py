@@ -1,18 +1,17 @@
 # general_info.py
 import streamlit as st
+import pandas as pd
 import shared_state
 from datetime import date
 import parameters
 
-# Try to import synced lists, ensuring we use Singular variable names locally
+# Try to import synced lists
 try:
     import imported_data
-    # Map imported plural lists to Singular variables as requested
     SOIL_TYPE = imported_data.SOIL_TYPES
     CLIMATE = imported_data.CLIMATES
     MOISTURE = imported_data.MOISTURES
 except ImportError:
-    # Defaults
     SOIL_TYPE = ["Spodic soils", "Volcanic soils", "Clay soils", "Sandy soils", "Loam soils", "Wetland/Organic soils"]
     CLIMATE = ["Tropical montane", "Tropical wet", "Tropical dry"]
     MOISTURE = ["Moist", "Wet", "Dry"]
@@ -45,7 +44,7 @@ def render_general_info():
         with col2:
             st.markdown("#### **Project Site & Environment**")
             
-            # 1. Location
+            # Location
             region = st.selectbox("Region", ["Central Africa", "Indonesia", "Brazil"], key="region_selector")
             if region != shared_state.get("gi_region"): shared_state.set("gi_region", region)
             
@@ -54,18 +53,15 @@ def render_general_info():
             
             st.divider()
 
-            # 2. Environmental Context
+            # Environmental Context
             e1, e2, e3 = st.columns(3)
-            with e1:
-                st.selectbox("Climate", CLIMATE, key="gi_climate")
-            with e2:
-                st.selectbox("Moisture", MOISTURE, key="gi_moisture")
-            with e3:
-                st.selectbox("Soil Type", SOIL_TYPE, key="gi_soil")
+            e1.selectbox("Climate", CLIMATE, key="gi_climate")
+            e2.selectbox("Moisture", MOISTURE, key="gi_moisture")
+            e3.selectbox("Soil Type", SOIL_TYPE, key="gi_soil")
 
             st.divider()
             
-            # 3. Duration
+            # Duration
             d1, d2 = st.columns(2)
             d1.number_input("Implementation (yrs)", value=4, key="gi_impl")
             d2.number_input("Capitalization (yrs)", value=10, key="gi_cap")
@@ -75,89 +71,111 @@ def render_general_info():
     # ==========================================
     st.markdown("### 2. Activities Reported")
     with st.container(border=True):
-        
-        # We create a 2-column layout to mimic the visual balance
         col_act_1, col_act_2 = st.columns(2)
         
         with col_act_1:
-            # --- Energy ---
             st.markdown("**Energy**")
-            st.checkbox("Improved Cookstoves manufacturing and distribution", key="act_energy_1")
-            st.checkbox("Improved transformation efficiency", key="act_energy_2")
-            st.checkbox("Wood fuel substitution", key="act_energy_3")
-            st.checkbox("Cogeneration", key="act_energy_4")
+            st.checkbox("Improved Cookstoves manufacturing and distribution", value=True, key="act_energy_1")
+            st.checkbox("Improved transformation efficiency", value=True, key="act_energy_2")
+            st.checkbox("Wood fuel substitution", value=False, key="act_energy_3") # Empty in image
+            st.checkbox("Cogeneration", value=True, key="act_energy_4")
 
             st.divider()
-
-            # --- Afforestation & Restauration ---
             st.markdown("**Afforestation & Restauration**")
-            st.checkbox("Small, medium and large-scale agroforestry", key="act_arr_1")
-            st.checkbox("Large-scale forest plantations", key="act_arr_2")
-            st.checkbox("Natural regeneration", key="act_arr_3")
+            st.checkbox("Small, medium and large-scale agroforestry", value=True, key="act_arr_1")
+            st.checkbox("Large-scale forest plantations", value=True, key="act_arr_2")
+            st.checkbox("Natural regeneration", value=True, key="act_arr_3")
 
         with col_act_2:
-            # --- Agriculture ---
             st.markdown("**Agriculture**")
             st.checkbox("Deforestation-free outgrower", value=True, key="act_agri_1")
             st.checkbox("Agro-industrial expansion", value=True, key="act_agri_2")
             st.checkbox("Sustainable intensification", value=True, key="act_agri_3")
 
             st.divider()
-
-            # --- Forestry & Conservation ---
             st.markdown("**Forestry & Conservation**")
-            st.checkbox("Forest Concessions Transitioning to Reduced Impact Logging", key="act_forest_1")
-            st.checkbox("Transformation factories or equipment for sustainably sourced", key="act_forest_2")
-            st.checkbox("Forest conservation", key="act_forest_3")
+            st.checkbox("Forest Concessions Transitioning to Reduced Impact Logging", value=True, key="act_forest_1")
+            st.checkbox("Transformation factories or equipment for sustainably sourced", value=True, key="act_forest_2")
+            st.checkbox("Forest conservation", value=True, key="act_forest_3")
 
     # ==========================================
-    # 3. PARAMETERS (TIER 1 & TIER 2)
+    # 3. PARAMETERS (Mirroring Images)
     # ==========================================
     st.markdown("### 3. Parameters")
-    with st.container(border=True):
-        st.caption("Review Tier 1 defaults below. Enter Tier 2 (Local) data in the 'Override' column if available.")
+    
+    # Helper to create those "Blue Header" tables
+    def make_param_box(title, data_dict=None, custom_component=None):
+        with st.container(border=True):
+            st.markdown(f"**{title}**")
+            if custom_component:
+                custom_component()
+            elif data_dict:
+                st.dataframe(pd.DataFrame(data_dict), hide_index=True, use_container_width=True)
 
-        # --- GRID LAYOUT ---
-        h1, h2, h3, h4 = st.columns([2.5, 1, 1, 2])
-        h1.markdown("**PARAMETER**")
-        h2.markdown("**UNIT**")
-        h3.markdown("**DEFAULT (TIER 1)**")
-        h4.markdown("**OVERRIDE (TIER 2)**")
-        st.markdown("---")
+    # --- ROW 1: GWP | SOC | Carbon Fraction ---
+    r1c1, r1c2, r1c3 = st.columns(3)
+    
+    # 1.1 Global Warming Potential
+    with r1c1:
+        with st.container(border=True):
+            st.markdown("**Global warming potential**")
+            # Custom grid layout for Tier 1 / Tier 2
+            h1, h2, h3 = st.columns([1.5, 1, 1])
+            h2.caption("Tier 1 (Def)")
+            h3.caption("Tier 2 (Any)")
+            
+            for gas, val in parameters.GWP_DEFAULTS.items():
+                c1, c2, c3 = st.columns([1.5, 1, 1])
+                c1.write(gas)
+                c2.write(val)
+                c3.text_input(f"t2_{gas}", label_visibility="collapsed", key=f"gwp_{gas}")
 
-        def param_row(label, unit, default_val, key_suffix):
-            c1, c2, c3, c4 = st.columns([2.5, 1, 1, 2])
-            c1.write(f"**{label}**")
-            c2.write(unit)
-            c3.code(str(default_val))
-            c4.number_input(f"{label}", min_value=0.0, key=f"p_{key_suffix}", label_visibility="collapsed", help=f"Default: {default_val}")
+    # 1.2 Reference Soil Organic Carbon
+    with r1c2:
+        with st.container(border=True):
+            st.markdown("**Reference soil organic carbon**")
+            h1, h2, h3 = st.columns([1.5, 1, 1])
+            h2.caption("Tier 1 (Def)")
+            h3.caption("Tier 2 (Any)")
+            
+            c1, c2, c3 = st.columns([1.5, 1, 1])
+            c1.write("SOC (tC/ha)")
+            c2.write(parameters.REF_SOC_DEFAULT)
+            c3.text_input("t2_soc", label_visibility="collapsed", key="soc_ref")
 
-        # --- B. GLOBAL CONSTANTS ---
-        st.markdown("###### **Global Constants**")
-        param_row("GWP CO2", "Index", parameters.GWP["CO2"], "gwp_co2")
-        param_row("GWP CH4", "Index", parameters.GWP["CH4"], "gwp_ch4")
-        param_row("GWP N2O", "Index", parameters.GWP["N2O"], "gwp_n2o")
-        param_row("Carbon Fraction (Biomass)", "Frac", parameters.CARBON_FRACTION_DEFAULT, "c_fract")
+    # 1.3 Carbon Fraction
+    with r1c3:
+        with st.container(border=True):
+            st.markdown("**Carbon fraction**")
+            h1, h2, h3 = st.columns([1.5, 1, 1])
+            h2.caption("Tier 1 (Def)")
+            h3.caption("Tier 2 (Any)")
+            
+            c1, c2, c3 = st.columns([1.5, 1, 1])
+            c1.write("Carbon fraction")
+            c2.write(parameters.CARBON_FRACTION_DEFAULT)
+            c3.text_input("t2_cf", label_visibility="collapsed", key="c_fract")
 
-        st.markdown("###### **Soil Parameters**")
-        param_row("Ref. Soil Organic Carbon", "tC/ha", parameters.REF_SOC_DEFAULT, "soc_ref")
-        
-        # Soil Period (Special State Handling)
-        c1, c2, c3, c4 = st.columns([2.5, 1, 1, 2])
-        c1.write("**Soil Calculation Period**")
-        c2.write("Years")
-        c3.code("20")
-        curr_soil = shared_state.get("soil_divisor") or 20
-        new_soil = c4.number_input("Soil Period", value=int(curr_soil), step=1, key="soil_input_unique", label_visibility="collapsed")
-        if new_soil != shared_state.get("soil_divisor"): shared_state.set("soil_divisor", new_soil)
+    # --- ROW 2: Cookstoves | Fuel Qty | Energy Gen ---
+    r2c1, r2c2, r2c3 = st.columns([2, 1.5, 1])
+    with r2c1:
+        make_param_box("Emission factor traditional cookstoves (g/kg) [default]", parameters.EF_COOKSTOVES_DATA)
+    with r2c2:
+        make_param_box("Quantity of fuel used", parameters.FUEL_QTY_DATA)
+    with r2c3:
+        make_param_box("Energy generated", parameters.ENERGY_GEN_DATA)
 
-        st.markdown("###### **Energy & Fuel**")
-        param_row("EF Traditional Cookstoves", "tCO2e/t", parameters.ENERGY_DEFAULTS["EF_traditional_cookstove"], "ef_cook")
-        param_row("Default Fuel Qty Used", "t/hh/yr", parameters.ENERGY_DEFAULTS["Default_fuel_qty"], "fuel_qty")
-        param_row("EF Charcoal Production", "tCO2e/t", parameters.ENERGY_DEFAULTS["EF_charcoal_production"], "ef_char")
-        param_row("EF Substitution Fuel", "tCO2/TJ", parameters.ENERGY_DEFAULTS["EF_substitution_fuel"], "ef_sub")
-        param_row("C-Intensity Electricity", "tCO2/MWh", parameters.ENERGY_DEFAULTS["C_intensity_electricity"], "c_grid")
-        param_row("Default Energy Generated", "MWh/yr", parameters.ENERGY_DEFAULTS["Default_energy_gen"], "energy_gen")
+    # --- ROW 3: Charcoal Production ---
+    # (Matches image_69cc85.png)
+    make_param_box("Emission factor charcoal production (g/kg) [default]", parameters.EF_CHARCOAL_DATA)
 
-        st.markdown("###### **Forestry**")
-        param_row("EF RIL-C", "tCO2e/m3", parameters.RIL_C_FACTOR, "ef_rilc")
+    # --- ROW 4: Substitution Fuel | C-Intensity | RIL-C ---
+    r4c1, r4c2 = st.columns([1.5, 1])
+    
+    with r4c1:
+        make_param_box("Emission factor of substitution fuel [default]", parameters.EF_SUBSTITUTION_DATA)
+
+    with r4c2:
+        # C-Intensity and RIL-C stacked vertically on the right
+        make_param_box("Carbon intensity of electricity in the Congo Basin [default]", parameters.C_INTENSITY_DATA)
+        make_param_box("Emission factor RIL-C", parameters.RIL_C_DATA)
