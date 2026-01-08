@@ -3,16 +3,13 @@ import streamlit as st
 import pandas as pd
 import shared_state
 import general_info
-import agri
-import forest
+import agri 
+# Note: No imports for forest/energy to keep it simple
 
-# 1. Page Config
 st.set_page_config(page_title="CAFI Mitigation Tool", layout="wide")
-
-# 2. Initialize Shared State
 shared_state.init_state()
 
-# 3. Create Top Navigation Tabs
+# Tabs
 tabs = st.tabs([
     "0 Start", 
     "1 Energy", 
@@ -22,61 +19,48 @@ tabs = st.tabs([
     "Results"
 ])
 
-# --- TAB 0: Start / Landing Page ---
+# --- TAB 0: Start ---
 with tabs[0]:
     general_info.render_general_info()
 
-# --- TAB 1: Energy ---
+# --- TAB 1 & 2: Placeholders ---
 with tabs[1]:
     st.header("1. Energy")
-    st.info("Energy module coming soon...")
+    st.info("🚧 Module under development (Placeholder)")
 
-# --- TAB 2: ARR ---
 with tabs[2]:
     st.header("2. Afforestation & Reforestation")
-    st.info("ARR module coming soon...")
+    st.info("🚧 Module under development (Placeholder)")
 
-# --- TAB 3: Agriculture ---
+# --- TAB 3: AGRICULTURE (Active) ---
 with tabs[3]:
     agri.render_agri_module()
 
-# --- TAB 4: Forestry ---
+# --- TAB 4: Placeholder ---
 with tabs[4]:
-    forest.render_forest_module()
+    st.header("4. Forestry & Conservation")
+    st.info("🚧 Module under development (Placeholder)")
 
 # --- TAB 5: Results ---
 with tabs[5]:
     st.header("Results Summary")
     
-    # Retrieve data safely
-    grand_total_agri = shared_state.get("agri_grand_total") or 0.0
-    grand_total_forest = shared_state.get("forest_grand_total") or 0.0
-    total_combined = grand_total_agri + grand_total_forest
+    # Only showing Agri results for now
+    agri_total = shared_state.get("agri_grand_total") or 0.0
     
-    # Display Metric
-    st.metric("Total Project Emissions Reduction", f"{total_combined:,.2f} tCO2e")
+    st.metric("Total Agriculture Emissions Reduction", f"{agri_total:,.2f} tCO2e")
 
-    # Detailed Breakdown for Agriculture
+    # Table
     results_data = shared_state.get("agri_results_table") or []
     if results_data:
-        st.subheader("Agriculture Breakdown")
+        st.subheader("Detailed Breakdown")
         df_res = pd.DataFrame(results_data)
         st.dataframe(
             df_res, 
             column_config={
                 "Emission Reduction": st.column_config.NumberColumn(format="%.2f"),
+                "Ref AGB": st.column_config.NumberColumn(format="%.2f"),
+                "Ref Soil": st.column_config.NumberColumn(format="%.2f"),
             },
             use_container_width=True
         )
-        
-        # Stacked Chart
-        import plotly.express as px
-        if "Section" in df_res.columns and "Emission Reduction" in df_res.columns:
-            fig = px.bar(
-                df_res, 
-                x="Section", 
-                y="Emission Reduction", 
-                color="Crop", 
-                title="Agri Reductions by Crop System"
-            )
-            st.plotly_chart(fig, use_container_width=True)
