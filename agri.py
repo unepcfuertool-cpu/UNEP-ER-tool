@@ -25,11 +25,11 @@ def render_agri_module():
 
     # --- HELPER: MASTER TABLE RENDERER ---
     def render_section(key_prefix):
-        # Initialize Session State Keys
+        # Keys for session state
         key_main = f"main_{key_prefix}"
         key_tier3 = f"tier3_{key_prefix}"
 
-        # Define Columns
+        # Columns for LEFT table (Activity Data)
         cols_main = [
             "Perennial cropping system deployed", 
             "Area (ha)", 
@@ -45,6 +45,7 @@ def render_agri_module():
             "Total GHG emission reduced (tCO2e)"
         ]
 
+        # Columns for RIGHT table (Local Data)
         cols_tier3 = [
             "Reference Crop (Read-only)",
             "Emission factors (tC/ha/year) Tier 3 - Above-ground", 
@@ -67,7 +68,8 @@ def render_agri_module():
         # --- LEFT: ACTIVITY DATA ---
         with col_left:
             st.markdown("**1. Activity Data & Defaults**")
-            # We use a temporary variable for the editor to capture changes immediately
+            
+            # Render Left Table
             edited_main = st.data_editor(
                 st.session_state[key_main],
                 key=f"editor_{key_main}",
@@ -90,37 +92,44 @@ def render_agri_module():
                 },
                 use_container_width=True
             )
+            
+            # Save Left Table Changes immediately
+            st.session_state[key_main] = edited_main
 
         # --- SYNC LOGIC ---
-        # 1. Update the Main state
-        st.session_state[key_main] = edited_main
-        
-        # 2. Synchronize the Tier 3 DataFrame size to match Main
-        current_rows = len(edited_main)
+        # 1. Get current Tier 3 data
         df_tier3 = st.session_state[key_tier3]
         
-        if current_rows > len(df_tier3):
-            # Append new empty rows if Main has more rows
-            rows_to_add = current_rows - len(df_tier3)
-            new_data = pd.DataFrame([[None] * len(cols_tier3)] * rows_to_add, columns=cols_tier3)
-            df_tier3 = pd.concat([df_tier3, new_data], ignore_index=True)
-        elif current_rows < len(df_tier3):
-            # Truncate if Main has fewer rows (row deletion)
-            df_tier3 = df_tier3.iloc[:current_rows]
-
-        # 3. Update the "Reference Crop" label to match the Left table
-        # This ensures the user knows which row is which in the right table
-        df_tier3["Reference Crop (Read-only)"] = edited_main["Perennial cropping system deployed"].values
+        # 2. Check row counts
+        main_len = len(edited_main)
+        tier3_len = len(df_tier3)
         
-        # Save the synced Tier 3 DF back to state so the editor renders the correct size
+        # 3. Adjust Tier 3 Rows to match Main
+        if main_len > tier3_len:
+            # Add rows
+            rows_to_add = main_len - tier3_len
+            new_data = pd.DataFrame([[None] * len(cols_tier3)] * rows_to_add, columns=cols_tier3)
+            # Use pd.concat properly
+            df_tier3 = pd.concat([df_tier3, new_data], ignore_index=True)
+            
+        elif main_len < tier3_len:
+            # Delete rows
+            df_tier3 = df_tier3.iloc[:main_len]
+
+        # 4. Sync Reference Crop Label
+        if main_len > 0:
+            df_tier3["Reference Crop (Read-only)"] = edited_main["Perennial cropping system deployed"].values
+        else:
+            df_tier3 = pd.DataFrame(columns=cols_tier3) # Reset if empty
+
+        # 5. Save synced state BEFORE rendering the right table
         st.session_state[key_tier3] = df_tier3
 
         # --- RIGHT: LOCAL DATA ---
         with col_right:
             st.markdown("**2. Local Data**")
-            st.caption("Enter local values. Leave as **0** to use the Default.")
             
-            # We use num_rows="fixed" so users can't add rows here; they must add to the Left table.
+            # Render Right Table (Locked rows, enabled cells)
             edited_tier3 = st.data_editor(
                 st.session_state[key_tier3],
                 key=f"editor_{key_tier3}",
@@ -128,7 +137,7 @@ def render_agri_module():
                 column_config={
                     "Reference Crop (Read-only)": st.column_config.TextColumn("Ref Crop", disabled=True, width="small"),
                     
-                    # User Editable Columns (Tier 3)
+                    # User Editable Columns
                     "Emission factors (tC/ha/year) Tier 3 - Above-ground": st.column_config.NumberColumn("EF (T3) - AGB", min_value=0.0),
                     "Emission factors (tC/ha/year) Tier 3 - Below-ground": st.column_config.NumberColumn("EF (T3) - BGB", min_value=0.0),
                     "Emission factors (tC/ha/year) Tier 3 - Soil carbon": st.column_config.NumberColumn("EF (T3) - Soil", min_value=0.0),
@@ -140,7 +149,7 @@ def render_agri_module():
                 use_container_width=True
             )
             
-            # Save the user's edits to the Tier 3 table back to state
+            # Save Right Table Changes
             st.session_state[key_tier3] = edited_tier3
 
         return st.session_state[key_main], st.session_state[key_tier3]
@@ -172,16 +181,15 @@ def render_agri_module():
         def calculate_tab(df_m, df_t):
             total_tab = 0.0
             
-            # Iterate through rows (using index to match Left and Right tables)
+            # Iterate through rows
             for index, row in df_m.iterrows():
                 crop = row.get("Perennial cropping system deployed")
                 area = float(row.get("Area (ha)") or 0)
                 
                 if crop and area > 0:
-                    # A. Get Standard Defaults
+                    # A. Defaults
                     defaults = params["agb_bgb_soil"].get(crop, (0.0, 0.0, 0.0))
                     
-                    # Update Default Display Columns (Left Table)
                     df_m.at[index, "Emission factors (tC/ha/year) default - Above-ground"] = defaults[0]
                     df_m.at[index, "Emission factors (tC/ha/year) default - Below-ground"] = defaults[1]
                     df_m.at[index, "Emission factors (tC/ha/year) default - Soil carbon"] = defaults[2]
@@ -198,12 +206,9 @@ def render_agri_module():
                     df_m.at[index, "Removal factors default - Input"] = def_rf_i
                     df_m.at[index, "Removal factors default - Residue"] = def_rf_r
 
-                    # B. Get Tier 3 / Local Overrides (Right Table)
-                    # We use strict index matching since tables are synced
+                    # B. Tier 3 Overrides
                     try:
                         row_t3 = df_t.iloc[index]
-                        
-                        # Logic: If User Value > 0, use it. Else use Default.
                         u_ef_agb = float(row_t3.get("Emission factors (tC/ha/year) Tier 3 - Above-ground") or 0) or defaults[0]
                         u_ef_bgb = float(row_t3.get("Emission factors (tC/ha/year) Tier 3 - Below-ground") or 0) or defaults[1]
                         u_ef_soil = float(row_t3.get("Emission factors (tC/ha/year) Tier 3 - Soil carbon") or 0) or defaults[2]
@@ -211,17 +216,14 @@ def render_agri_module():
                         u_rf_t = float(row_t3.get("Removal factors Tier 3 - Tillage") or 0) or def_rf_t
                         u_rf_i = float(row_t3.get("Removal factors Tier 3 - Input") or 0) or def_rf_i
                         u_rf_r = float(row_t3.get("Removal factors Tier 3 - Residue") or 0) or def_rf_r
-                        
                     except IndexError:
-                        # Fallback if synchronization failed
                         u_ef_agb, u_ef_bgb, u_ef_soil = defaults
                         u_rf_t, u_rf_i, u_rf_r = def_rf_t, def_rf_i, def_rf_r
 
-                    # C. Calculate Row Total
+                    # C. Calculate Total
                     soil_impact = u_ef_soil * u_rf_t * u_rf_i * u_rf_r
                     biomass_impact = u_ef_agb + u_ef_bgb
                     
-                    # Convert Carbon to CO2e (factor 3.664)
                     total_c = area * (biomass_impact + soil_impact)
                     total_co2 = total_c * 3.664
                     
@@ -230,7 +232,6 @@ def render_agri_module():
 
             return total_tab
 
-        # Calculate all tabs
         t1 = calculate_tab(df_main_1, df_tier3_1)
         t2 = calculate_tab(df_main_2, df_tier3_2)
         t3 = calculate_tab(df_main_3, df_tier3_3)
@@ -238,6 +239,5 @@ def render_agri_module():
         grand_total = t1 + t2 + t3
         shared_state.set("agri_grand_total", grand_total)
         
-        # Display Success Message
         st.success(f"Calculated! Total Reductions: {grand_total:,.2f} tCO2e")
         st.rerun()
