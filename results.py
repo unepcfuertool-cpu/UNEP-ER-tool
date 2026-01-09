@@ -1,8 +1,8 @@
 # results.py
 import streamlit as st
 import plotly.graph_objects as go
-import datetime
 import shared_state
+import datetime
 
 def render_results_module():
     # --- 1. GATHER DATA ---
@@ -11,80 +11,116 @@ def render_results_module():
     arr = shared_state.get("arr_grand_total", 0.0) or 0.0
     forest = shared_state.get("forest_grand_total", 0.0) or 0.0
     
-    # Agri Sub-totals (Must match keys saved in agri.py)
-    agri_1 = shared_state.get("agri_total_1", 0.0) or 0.0 # Outgrower
-    agri_2 = shared_state.get("agri_total_2", 0.0) or 0.0 # Industrial
-    agri_3 = shared_state.get("agri_total_3", 0.0) or 0.0 # Intensification
+    # Agri Sub-totals (Using exact full names for variables helps clarity, but keys must match agri.py)
+    agri_1 = shared_state.get("agri_total_1", 0.0) or 0.0 # Deforestation-free outgrower
+    agri_2 = shared_state.get("agri_total_2", 0.0) or 0.0 # Agro-industrial expansion
+    agri_3 = shared_state.get("agri_total_3", 0.0) or 0.0 # Sustainable intensification
     agri_total = agri_1 + agri_2 + agri_3
     
+    # Fallback Logic: If total exists but sub-totals don't, assign to first category
+    if agri_total == 0 and shared_state.get("agri_grand_total", 0.0) > 0:
+        agri_1 = shared_state.get("agri_grand_total", 0.0)
+        agri_total = agri_1
+
     grand_total = energy + arr + agri_total + forest
 
-    # Project Info
+    # --- 2. PROJECT INFO (Fixed Linking) ---
+    # Calculating duration based on Implementation + Capitalization from Start Page
+    impl_years = shared_state.get("gi_impl", 0) or 0
+    cap_years = shared_state.get("gi_cap", 0) or 0
+    total_duration = impl_years + cap_years
+
     info = {
-        "Project": shared_state.get("project_name", "-"),
-        "Executing agency": shared_state.get("executing_agency", "-"),
-        "Funding agency": shared_state.get("funding_agency", "-"),
+        "Project": shared_state.get("gi_project_name", "-"),
+        "Executing agency": shared_state.get("gi_executing_agency", "-"),
+        "Funding agency": shared_state.get("gi_funding_agency", "-"),
         "Country": shared_state.get("gi_country", "-"),
-        "Project cost": f"${shared_state.get('project_cost', '0')}",
-        "Duration": f"{shared_state.get('project_duration', '0')} years"
+        "Project cost": f"${shared_state.get('gi_project_cost', 0):,.0f}", # Format with commas
+        "Duration": f"{total_duration} years"
     }
 
-    # Prepare Data for Charts (Breakdown including Agri Sub-categories)
-    labels = [
-        "Energy",
-        "ARR",
-        "Forestry",
-        "Agri: Outgrower",
-        "Agri: Industrial",
-        "Agri: Intensification"
+    # --- 3. PREPARE STACKED DATA (Full Terminology) ---
+    # Main Sector Labels (X-Axis)
+    sectors = [
+        "Energy", 
+        "Afforestation & Reforestation", 
+        "Agriculture", 
+        "Forestry & Conservation"
     ]
     
-    values = [
-        energy,
-        arr,
-        forest,
-        agri_1,
-        agri_2,
-        agri_3
-    ]
+    # Trace Data (Y-Axis Values)
+    # Each list corresponds to [Energy_Val, ARR_Val, Agri_Val, Forest_Val]
     
-    # Percentages
-    if grand_total > 0:
-        percents = [(v / grand_total) * 100 for v in values]
-    else:
-        percents = [0.0] * len(values)
+    # 1. Energy
+    y_energy = [energy, 0, 0, 0]
+    
+    # 2. Afforestation & Reforestation (ARR)
+    y_arr = [0, arr, 0, 0]
+    
+    # 3. Forestry & Conservation
+    y_forest = [0, 0, 0, forest]
+    
+    # 4. Agriculture Sub-categories (Stacked on the 3rd column)
+    y_agri_1 = [0, 0, agri_1, 0] # Deforestation-free outgrower
+    y_agri_2 = [0, 0, agri_2, 0] # Agro-industrial expansion
+    y_agri_3 = [0, 0, agri_3, 0] # Sustainable intensification
 
-    # --- 2. LAYOUT ---
+    # Calculate Percentages for the second chart
+    def get_percents(values, total):
+        if total == 0: return [0]*4
+        return [(v/total)*100 for v in values]
+
+    p_energy = get_percents(y_energy, grand_total)
+    p_arr = get_percents(y_arr, grand_total)
+    p_forest = get_percents(y_forest, grand_total)
+    p_agri_1 = get_percents(y_agri_1, grand_total)
+    p_agri_2 = get_percents(y_agri_2, grand_total)
+    p_agri_3 = get_percents(y_agri_3, grand_total)
+
+    # --- 4. LAYOUT ---
+    st.markdown("### Final Results Dashboard")
+    
     col_left, col_mid, col_right = st.columns([1.5, 1, 1.5])
 
-    # --- LEFT CHART: Absolute Breakdown ---
+    # --- LEFT CHART: Absolute Stacked Bar ---
     with col_left:
-        st.markdown("<h6 style='text-align:center; color:#555;'>Reduction by Category (tCO2e)</h6>", unsafe_allow_html=True)
+        st.markdown("<h6 style='text-align:center; color:#555;'>Mitigation potential by sector and activity (tCO2e)</h6>", unsafe_allow_html=True)
         
-        fig1 = go.Figure(go.Bar(
-            x=labels, 
-            y=values, 
-            # Distinct colors for Agriculture to highlight them
-            marker_color=['#999', '#999', '#999', '#F4A261', '#E76F51', '#2A9D8F'], 
-            text=[f"{v:,.0f}" if v > 0 else "" for v in values],
-            textposition='auto'
-        ))
+        fig1 = go.Figure()
         
+        # Add Traces with FULL NAMES
+        # Base Sectors
+        fig1.add_trace(go.Bar(name='Energy', x=sectors, y=y_energy, marker_color='#B0B0B0'))
+        fig1.add_trace(go.Bar(name='Afforestation & Reforestation', x=sectors, y=y_arr, marker_color='#B0B0B0'))
+        fig1.add_trace(go.Bar(name='Forestry & Conservation', x=sectors, y=y_forest, marker_color='#B0B0B0'))
+        
+        # Agriculture Stacked Components
+        fig1.add_trace(go.Bar(name='Deforestation-free outgrower', x=sectors, y=y_agri_1, marker_color='#E9C46A', 
+                             text=[f"{v:,.0f}" if v>0 else "" for v in y_agri_1], textposition='inside'))
+        fig1.add_trace(go.Bar(name='Agro-industrial expansion', x=sectors, y=y_agri_2, marker_color='#F4A261', 
+                             text=[f"{v:,.0f}" if v>0 else "" for v in y_agri_2], textposition='inside'))
+        fig1.add_trace(go.Bar(name='Sustainable intensification', x=sectors, y=y_agri_3, marker_color='#E76F51', 
+                             text=[f"{v:,.0f}" if v>0 else "" for v in y_agri_3], textposition='inside'))
+
         fig1.update_layout(
-            showlegend=False, height=500, margin=dict(t=20, b=100), 
+            barmode='stack',
+            showlegend=True,
+            # Legend at bottom, horizontal
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+            height=500,
+            margin=dict(t=20, b=80), # Increased bottom margin for larger legend
             paper_bgcolor='white', plot_bgcolor='white'
         )
         fig1.update_yaxes(showgrid=True, gridcolor='#eee', zeroline=True, zerolinecolor='black')
         st.plotly_chart(fig1, use_container_width=True)
 
-
     # --- MIDDLE: Info & Total ---
     with col_mid:
-        # 1. Info Table
+        # Project Info Table
         html = """<style>
             .it{width:100%; border-collapse:collapse; border:2px solid black; font-size:0.85em; font-family:sans-serif;} 
             .it td{border:1px solid black; padding:6px; text-align:center;} 
-            .il{background:#f2f2f2; font-weight:bold; width:40%;} 
+            .il{background:#f2f2f2; font-weight:bold; width:40%; text-align:left; padding-left:10px;} 
             .iv{color:#0056b3; font-style:italic;}
         </style><table class='it'>"""
         for k, v in info.items():
@@ -94,7 +130,7 @@ def render_results_module():
         
         st.write("")
         
-        # 2. Green Total Box
+        # Green Total Box
         st.markdown(f"""
         <div style="border:2px solid black; text-align:center; margin-bottom:20px;">
             <div style="padding:10px; font-weight:bold; border-bottom:1px solid #ddd; background:white;">Total Emission Reduction</div>
@@ -104,22 +140,44 @@ def render_results_module():
             </div>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Agriculture Details Table (Full names)
+        if agri_total > 0:
+            st.markdown("""<div style="font-size:0.85em; font-weight:bold; text-align:center; margin-bottom:5px;">Agriculture Details</div>""", unsafe_allow_html=True)
+            agri_html = f"""
+            <table class='it' style="border:1px solid #ccc;">
+                <tr style="background:#E9C46A;"><td style="text-align:left;">Deforestation-free outgrower</td><td>{agri_1:,.0f}</td></tr>
+                <tr style="background:#F4A261;"><td style="text-align:left;">Agro-industrial expansion</td><td>{agri_2:,.0f}</td></tr>
+                <tr style="background:#E76F51;"><td style="text-align:left;">Sustainable intensification</td><td>{agri_3:,.0f}</td></tr>
+            </table>
+            """
+            st.markdown(agri_html, unsafe_allow_html=True)
 
-    # --- RIGHT CHART: Percentage Breakdown ---
+    # --- RIGHT CHART: Percentage Stacked Bar ---
     with col_right:
-        st.markdown("<h6 style='text-align:center; color:#555;'>Contribution by Category (%)</h6>", unsafe_allow_html=True)
+        st.markdown("<h6 style='text-align:center; color:#555;'>Contribution by sector and activity (%)</h6>", unsafe_allow_html=True)
         
-        fig2 = go.Figure(go.Bar(
-            x=labels, 
-            y=percents, 
-            marker_color=['#999', '#999', '#999', '#F4A261', '#E76F51', '#2A9D8F'],
-            text=[f"{p:.1f}%" if p > 0 else "" for p in percents],
-            textposition='auto'
-        ))
+        fig2 = go.Figure()
         
+        # Add Traces (Percentages) - Full Names
+        fig2.add_trace(go.Bar(name='Energy', x=sectors, y=p_energy, marker_color='#B0B0B0'))
+        fig2.add_trace(go.Bar(name='Afforestation & Reforestation', x=sectors, y=p_arr, marker_color='#B0B0B0'))
+        fig2.add_trace(go.Bar(name='Forestry & Conservation', x=sectors, y=p_forest, marker_color='#B0B0B0'))
+        
+        fig2.add_trace(go.Bar(name='Deforestation-free outgrower', x=sectors, y=p_agri_1, marker_color='#E9C46A',
+                             text=[f"{v:.1f}%" if v>0 else "" for v in p_agri_1], textposition='inside'))
+        fig2.add_trace(go.Bar(name='Agro-industrial expansion', x=sectors, y=p_agri_2, marker_color='#F4A261',
+                             text=[f"{v:.1f}%" if v>0 else "" for v in p_agri_2], textposition='inside'))
+        fig2.add_trace(go.Bar(name='Sustainable intensification', x=sectors, y=p_agri_3, marker_color='#E76F51',
+                             text=[f"{v:.1f}%" if v>0 else "" for v in p_agri_3], textposition='inside'))
+
         fig2.update_layout(
-            showlegend=False, height=500, margin=dict(t=20, b=100), 
-            paper_bgcolor='white', plot_bgcolor='white', 
+            barmode='stack',
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+            height=500,
+            margin=dict(t=20, b=80),
+            paper_bgcolor='white', plot_bgcolor='white',
             yaxis=dict(range=[0, 100])
         )
         fig2.update_yaxes(showgrid=True, gridcolor='#eee', ticksuffix="%")
