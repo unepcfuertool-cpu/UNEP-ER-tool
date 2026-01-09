@@ -11,7 +11,7 @@ def render_results_module():
     arr = shared_state.get("arr_grand_total", 0.0) or 0.0
     forest = shared_state.get("forest_grand_total", 0.0) or 0.0
     
-    # Agri Sub-totals (Calculated in the new agri.py)
+    # Agri Sub-totals (Must match keys saved in agri.py)
     agri_1 = shared_state.get("agri_total_1", 0.0) or 0.0 # Outgrower
     agri_2 = shared_state.get("agri_total_2", 0.0) or 0.0 # Industrial
     agri_3 = shared_state.get("agri_total_3", 0.0) or 0.0 # Intensification
@@ -29,15 +29,14 @@ def render_results_module():
         "Duration": f"{shared_state.get('project_duration', '0')} years"
     }
 
-    # Prepare Data for Charts (Focusing on Agriculture Categories as requested)
-    # We will show the main sectors, but split Agriculture
+    # Prepare Data for Charts (Breakdown including Agri Sub-categories)
     labels = [
         "Energy",
         "ARR",
         "Forestry",
-        "Agri: Outgrower",   # 3.1
-        "Agri: Industrial",  # 3.2
-        "Agri: Intensification" # 3.3
+        "Agri: Outgrower",
+        "Agri: Industrial",
+        "Agri: Intensification"
     ]
     
     values = [
@@ -49,7 +48,7 @@ def render_results_module():
         agri_3
     ]
     
-    # Calculate percentages
+    # Percentages
     if grand_total > 0:
         percents = [(v / grand_total) * 100 for v in values]
     else:
@@ -62,11 +61,11 @@ def render_results_module():
     with col_left:
         st.markdown("<h6 style='text-align:center; color:#555;'>Reduction by Category (tCO2e)</h6>", unsafe_allow_html=True)
         
-        # Use a bar chart to show the detailed breakdown
         fig1 = go.Figure(go.Bar(
             x=labels, 
             y=values, 
-            marker_color=['#999', '#999', '#999', '#F4A261', '#E76F51', '#2A9D8F'], # Highlight Agri colors
+            # Distinct colors for Agriculture to highlight them
+            marker_color=['#999', '#999', '#999', '#F4A261', '#E76F51', '#2A9D8F'], 
             text=[f"{v:,.0f}" if v > 0 else "" for v in values],
             textposition='auto'
         ))
@@ -75,7 +74,7 @@ def render_results_module():
             showlegend=False, height=500, margin=dict(t=20, b=100), 
             paper_bgcolor='white', plot_bgcolor='white'
         )
-        fig1.update_yaxes(showgrid=True, gridcolor='#eee')
+        fig1.update_yaxes(showgrid=True, gridcolor='#eee', zeroline=True, zerolinecolor='black')
         st.plotly_chart(fig1, use_container_width=True)
 
 
@@ -105,18 +104,6 @@ def render_results_module():
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        # 3. Agriculture Specific Summary Table
-        if agri_total > 0:
-            st.markdown("""<div style="font-size:0.85em; font-weight:bold; text-align:center; margin-bottom:5px;">Agriculture Details</div>""", unsafe_allow_html=True)
-            agri_html = f"""
-            <table class='it' style="border:1px solid #ccc;">
-                <tr style="background:#fff3cd;"><td style="text-align:left;">Outgrower</td><td>{agri_1:,.0f}</td></tr>
-                <tr style="background:#ffe5d0;"><td style="text-align:left;">Industrial</td><td>{agri_2:,.0f}</td></tr>
-                <tr style="background:#d1e7dd;"><td style="text-align:left;">Intensification</td><td>{agri_3:,.0f}</td></tr>
-            </table>
-            """
-            st.markdown(agri_html, unsafe_allow_html=True)
 
     # --- RIGHT CHART: Percentage Breakdown ---
     with col_right:
