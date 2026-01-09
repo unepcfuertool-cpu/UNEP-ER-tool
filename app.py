@@ -1,10 +1,22 @@
 # app.py
 import streamlit as st
-import pandas as pd
+import importlib
 import shared_state
 import general_info
+
+# Import modules
 import agri 
-# Note: No imports for forest/energy to keep it simple
+import results  # <--- NEW: Import the results module
+import start_page
+import energy
+import arr
+import forest
+import parameters
+
+# --- FORCE RELOAD to ensure you see changes ---
+importlib.reload(agri)
+importlib.reload(results)
+importlib.reload(parameters)
 
 st.set_page_config(page_title="CAFI Mitigation Tool", layout="wide")
 shared_state.init_state()
@@ -21,14 +33,18 @@ tabs = st.tabs([
 
 # --- TAB 0: Start ---
 with tabs[0]:
+    # Use the render function from general_info or start_page depending on your preference.
+    # Based on your file uploads, general_info seems to contain the start logic.
     general_info.render_general_info()
 
 # --- TAB 1 & 2: Placeholders ---
 with tabs[1]:
+    # energy.render_energy_module() # Uncomment when ready
     st.header("1. Energy")
     st.info("🚧 Module under development (Placeholder)")
 
 with tabs[2]:
+    # arr.render_arr_module() # Uncomment when ready
     st.header("2. Afforestation & Reforestation")
     st.info("🚧 Module under development (Placeholder)")
 
@@ -38,29 +54,11 @@ with tabs[3]:
 
 # --- TAB 4: Placeholder ---
 with tabs[4]:
+    # forest.render_forest_module() # Uncomment when ready
     st.header("4. Forestry & Conservation")
     st.info("🚧 Module under development (Placeholder)")
 
 # --- TAB 5: Results ---
 with tabs[5]:
-    st.header("Results Summary")
-    
-    # Only showing Agri results for now
-    agri_total = shared_state.get("agri_grand_total") or 0.0
-    
-    st.metric("Total Agriculture Emissions Reduction", f"{agri_total:,.2f} tCO2e")
-
-    # Table
-    results_data = shared_state.get("agri_results_table") or []
-    if results_data:
-        st.subheader("Detailed Breakdown")
-        df_res = pd.DataFrame(results_data)
-        st.dataframe(
-            df_res, 
-            column_config={
-                "Emission Reduction": st.column_config.NumberColumn(format="%.2f"),
-                "Ref AGB": st.column_config.NumberColumn(format="%.2f"),
-                "Ref Soil": st.column_config.NumberColumn(format="%.2f"),
-            },
-            use_container_width=True
-        )
+    # THIS LINE WAS MISSING. It now calls the dashboard.
+    results.render_results_module()
