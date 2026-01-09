@@ -77,8 +77,7 @@ RIL_C_DATA = {
 
 # --- 4. AGRICULTURE DATA ---
 # Format: "Crop Name": (AGB_Default, BGB_Default, Soil_Default)
-# These are the defaults corresponding to the list you provided.
-# I have used placeholders (0.0) for the new crops (Oil Palm, Rubber) where defaults were not in the original list.
+# Sourced strictly from 'parameter_with_source.xlsx' (Central Africa)
 AGRI_CROP_DATA = {
     "Alley cropping": (2.75, 0.59, 27.3),
     "Hedgerow": (0.47, 0.11, 27.3),
@@ -87,14 +86,14 @@ AGRI_CROP_DATA = {
     "Perennial fallow": (5.3, 1.27, 27.3),
     "Shade perennial": (1.82, 0.44, 27.3),
     "Silvopasture": (2.91, 0.79, 27.3),
-    "Silvoarable": (0.0, 0.0, 0.0),   # Placeholder, please update if you have specific default
-    "Oil Palm": (0.0, 0.0, 0.0),      # Placeholder
-    "Rubber": (0.0, 0.0, 0.0),        # Placeholder
-    "Tea": (1.82, 0.44, 27.3),        # Using Shaded Perennial proxy or 0 if preferred
+    # The following values are from 'DEFAULT_AGB_BGB_SOIL_BY_REGION.csv' under Central Africa
+    "Silvoarable": (5.09, 1.22, 27.3), 
+    "Oil Palm": (2.4, 0.0, 27.3),      
+    "Rubber": (3.0, 0.0, 27.3),        
+    "Tea": (0.7, 0.0, 27.3),
 }
 
 def get_agri_params(country):
-    # Returns the specific list regardless of country to ensure dropdowns always work
     return {
         "agb_bgb_soil": AGRI_CROP_DATA,
         "residue_multiplier": 0.47
