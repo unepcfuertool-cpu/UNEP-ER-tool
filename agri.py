@@ -25,7 +25,7 @@ def render_agri_module():
     def render_section(key_prefix):
         key_df = f"df_{key_prefix}"
         
-        # CHANGED: "Tier 3" replaced with "Local" in column names
+        # Internal Column Names (Already full length, but we ensure display matching)
         cols = [
             "Perennial cropping system deployed", "Area (ha)", 
             "Management options - Tillage management", "Management options - Input of organic materials", "Residue management",
@@ -39,7 +39,6 @@ def render_agri_module():
         if key_df not in st.session_state:
             st.session_state[key_df] = pd.DataFrame(columns=cols)
 
-        # CHANGED: Updated Instruction Text
         st.markdown("**Enter Project Data** (Scroll right for Local Data)")
         
         edited_df = st.data_editor(
@@ -47,30 +46,33 @@ def render_agri_module():
             key=f"editor_{key_prefix}",
             num_rows="dynamic",
             column_config={
-                "Perennial cropping system deployed": st.column_config.SelectboxColumn("1. Cropping System", options=crop_list, width="medium", required=True),
-                "Area (ha)": st.column_config.NumberColumn("2. Area (ha)", min_value=0.0, format="%.2f", width="small"),
-                "Management options - Tillage management": st.column_config.SelectboxColumn("3. Tillage", options=tillage_opts, width="medium", required=True),
-                "Management options - Input of organic materials": st.column_config.SelectboxColumn("4. Inputs", options=input_opts, width="medium", required=True),
-                "Residue management": st.column_config.SelectboxColumn("5. Residue", options=residue_opts, width="small", required=True),
+                # --- INPUTS ---
+                "Perennial cropping system deployed": st.column_config.SelectboxColumn("Perennial cropping system deployed", options=crop_list, width="medium", required=True),
+                "Area (ha)": st.column_config.NumberColumn("Area (ha)", min_value=0.0, format="%.2f", width="small"),
+                "Management options - Tillage management": st.column_config.SelectboxColumn("Management options - Tillage management", options=tillage_opts, width="medium", required=True),
+                "Management options - Input of organic materials": st.column_config.SelectboxColumn("Management options - Input of organic materials", options=input_opts, width="medium", required=True),
+                "Residue management": st.column_config.SelectboxColumn("Residue management", options=residue_opts, width="small", required=True),
                 
-                # Defaults (Gray)
-                "Emission factors (tC/ha/year) default - Above-ground": st.column_config.NumberColumn("Def. EF AGB", disabled=True),
-                "Emission factors (tC/ha/year) default - Below-ground": st.column_config.NumberColumn("Def. EF BGB", disabled=True),
-                "Emission factors (tC/ha/year) default - Soil carbon": st.column_config.NumberColumn("Def. EF Soil", disabled=True),
-                "Removal factors default - Tillage": st.column_config.NumberColumn("Def. RF Tillage", disabled=True),
-                "Removal factors default - Input": st.column_config.NumberColumn("Def. RF Input", disabled=True),
-                "Removal factors default - Residue": st.column_config.NumberColumn("Def. RF Residue", disabled=True),
+                # --- DEFAULTS (Read-Only) ---
+                # Fully spelled out headers
+                "Emission factors (tC/ha/year) default - Above-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Above-ground", disabled=True, width="medium"),
+                "Emission factors (tC/ha/year) default - Below-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Below-ground", disabled=True, width="medium"),
+                "Emission factors (tC/ha/year) default - Soil carbon": st.column_config.NumberColumn("Emission factors (tC/ha/year) default - Soil carbon", disabled=True, width="medium"),
+                "Removal factors default - Tillage": st.column_config.NumberColumn("Removal factors default - Tillage", disabled=True, width="medium"),
+                "Removal factors default - Input": st.column_config.NumberColumn("Removal factors default - Input", disabled=True, width="medium"),
+                "Removal factors default - Residue": st.column_config.NumberColumn("Removal factors default - Residue", disabled=True, width="medium"),
                 
-                # Local Data (Editable) - CHANGED Labels
-                "Emission factors (tC/ha/year) Local - Above-ground": st.column_config.NumberColumn("Local EF AGB", min_value=0.0),
-                "Emission factors (tC/ha/year) Local - Below-ground": st.column_config.NumberColumn("Local EF BGB", min_value=0.0),
-                "Emission factors (tC/ha/year) Local - Soil carbon": st.column_config.NumberColumn("Local EF Soil", min_value=0.0),
-                "Removal factors Local - Tillage": st.column_config.NumberColumn("Local RF Tillage", min_value=0.0),
-                "Removal factors Local - Input": st.column_config.NumberColumn("Local RF Input", min_value=0.0),
-                "Removal factors Local - Residue": st.column_config.NumberColumn("Local RF Residue", min_value=0.0),
+                # --- LOCAL DATA (Editable) ---
+                # Fully spelled out headers
+                "Emission factors (tC/ha/year) Local - Above-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) Local - Above-ground", min_value=0.0, width="medium"),
+                "Emission factors (tC/ha/year) Local - Below-ground": st.column_config.NumberColumn("Emission factors (tC/ha/year) Local - Below-ground", min_value=0.0, width="medium"),
+                "Emission factors (tC/ha/year) Local - Soil carbon": st.column_config.NumberColumn("Emission factors (tC/ha/year) Local - Soil carbon", min_value=0.0, width="medium"),
+                "Removal factors Local - Tillage": st.column_config.NumberColumn("Removal factors Local - Tillage", min_value=0.0, width="medium"),
+                "Removal factors Local - Input": st.column_config.NumberColumn("Removal factors Local - Input", min_value=0.0, width="medium"),
+                "Removal factors Local - Residue": st.column_config.NumberColumn("Removal factors Local - Residue", min_value=0.0, width="medium"),
                 
-                # Result
-                "Total GHG emission reduced (tCO2e)": st.column_config.NumberColumn("Total Reduced", format="%.2f", disabled=True)
+                # --- RESULT ---
+                "Total GHG emission reduced (tCO2e)": st.column_config.NumberColumn("Total GHG emission reduced (tCO2e)", format="%.2f", disabled=True, width="medium")
             },
             use_container_width=True
         )
@@ -112,7 +114,7 @@ def render_agri_module():
                     df.at[idx, "Removal factors default - Input"] = i_val
                     df.at[idx, "Removal factors default - Residue"] = r_val
 
-                    # Use Local if entered, else Default (CHANGED KEYS)
+                    # Use Local if entered, else Default
                     ef_agb = float(row.get("Emission factors (tC/ha/year) Local - Above-ground") or 0) or defaults[0]
                     ef_bgb = float(row.get("Emission factors (tC/ha/year) Local - Below-ground") or 0) or defaults[1]
                     ef_soil = float(row.get("Emission factors (tC/ha/year) Local - Soil carbon") or 0) or defaults[2]
