@@ -7,23 +7,24 @@ import shared_state
 
 def render_results_module():
     # --- 1. GATHER DATA ---
-    # Retrieve totals from shared state (default to 0 if not calculated yet)
-    energy_total = shared_state.get("energy_grand_total", 0.0)
-    arr_total = shared_state.get("arr_grand_total", 0.0)
-    agri_total = shared_state.get("agri_grand_total", 0.0)
-    forest_total = shared_state.get("forest_grand_total", 0.0)
+    # Retrieve totals from shared state (default to 0.0 if not found)
+    energy_total = shared_state.get("energy_grand_total", 0.0) or 0.0
+    arr_total = shared_state.get("arr_grand_total", 0.0) or 0.0
+    agri_total = shared_state.get("agri_grand_total", 0.0) or 0.0
+    forest_total = shared_state.get("forest_grand_total", 0.0) or 0.0
     
     # Calculate Grand Total
     grand_total = energy_total + arr_total + agri_total + forest_total
 
     # Project Information (from Start Page)
+    # Using 'get' with defaults to prevent errors if Start Page wasn't filled
     project_info = {
         "Project": shared_state.get("project_name", "-"),
         "Executing agency": shared_state.get("executing_agency", "-"),
         "Funding agency": shared_state.get("funding_agency", "-"),
         "Country": shared_state.get("gi_country", "-"),
         "Project cost (in USD)": shared_state.get("project_cost", "0"),
-        "Project duration": f"{shared_state.get("project_duration", '0')} years"
+        "Project duration": f"{shared_state.get('project_duration', '0')} years"
     }
 
     # Prepare Data for Charts
@@ -33,80 +34,85 @@ def render_results_module():
     }
     df_chart = pd.DataFrame(data)
     
-    # Calculate Percentages for the Right Chart
+    # Calculate Percentages (Safe division)
     if grand_total > 0:
         df_chart["Contribution (%)"] = (df_chart["Mitigation (tCO2e)"] / grand_total) * 100
     else:
         df_chart["Contribution (%)"] = 0.0
 
     # --- 2. LAYOUT ---
-    st.header("Results Dashboard")
+    # No main header needed if we match the screenshot style closely, 
+    # but keeping it clean:
     
     # Create 3 columns: Left Chart | Middle Info | Right Chart
     col_left, col_mid, col_right = st.columns([1.5, 1, 1.5])
 
     # --- LEFT COLUMN: CHART 1 (Absolute) ---
     with col_left:
-        st.subheader("Mitigation potential by sector")
-        if grand_total > 0:
-            fig1 = px.bar(
-                df_chart, 
-                x="Sector", 
-                y="Mitigation (tCO2e)", 
-                color="Sector",
-                text_auto='.2s',
-                title="Total tCO2e Reduced"
-            )
-            fig1.update_layout(showlegend=False, height=400)
-            st.plotly_chart(fig1, use_container_width=True)
-        else:
-            st.info("No data calculated yet.")
-            st.plotly_chart(px.bar(), use_container_width=True) # Empty placeholder
+        st.markdown("<h5 style='text-align: center;'>Mitigation potential by sector and activity</h5>", unsafe_allow_html=True)
+        
+        # Always render chart, even if empty
+        fig1 = px.bar(
+            df_chart, 
+            x="Sector", 
+            y="Mitigation (tCO2e)", 
+            color="Sector",
+            text_auto='.2s'
+        )
+        # Update layout to look clean like the screenshot
+        fig1.update_layout(
+            showlegend=False, 
+            height=500,
+            margin=dict(l=20, r=20, t=20, b=20),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title=None,
+            yaxis_title=None
+        )
+        # Force y-axis to start at 0
+        fig1.update_yaxes(showgrid=True, gridcolor='lightgray', zeroline=True, zerolinecolor='black')
+        
+        st.plotly_chart(fig1, use_container_width=True)
 
     # --- MIDDLE COLUMN: SUMMARY TABLE & CARD ---
     with col_mid:
-        # A. Project Info Table (Styled HTML)
+        # A. Project Info Table (Styled HTML to match screenshot look)
         table_html = """
         <style>
-            .info-table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 0.9em; }
-            .info-table td { border: 1px solid #e0e0e0; padding: 8px; }
-            .info-table tr:nth-child(even) { background-color: #f9f9f9; }
-            .info-label { font-weight: bold; background-color: #f0f2f6; width: 40%; }
+            .info-table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 0.85em; margin-bottom: 20px; }
+            .info-table td { border: 2px solid #000; padding: 6px; text-align: left; }
+            .info-label { font-weight: bold; background-color: #f2f2f2; width: 45%; }
+            .info-val { color: #007bff; font-style: italic; }
         </style>
         <table class="info-table">
         """
         for key, value in project_info.items():
-            table_html += f"<tr><td class='info-label'>{key}</td><td>{value}</td></tr>"
+            # Formatting specific fields blue/italic if they are values
+            val_style = "info-val" if value != "-" else ""
+            table_html += f"<tr><td class='info-label'>{key}</td><td class='{val_style}'>{value}</td></tr>"
         table_html += "</table>"
         
         st.markdown(table_html, unsafe_allow_html=True)
         
-        st.write("") # Spacer
-        st.write("") 
-
         # B. Total Mitigation Card (Green Box)
+        # Matches the screenshot: White box with thick border, green interior
         st.markdown(f"""
-        <div style="
-            background-color: #d4edda; 
-            border: 1px solid #c3e6cb; 
-            border-radius: 5px; 
-            padding: 20px; 
-            text-align: center; 
-            color: #155724;
-            margin-top: 20px;
-            margin-bottom: 20px;">
-            <h4 style="margin:0; font-size: 1.1em; font-weight:bold;">Total mitigation potential</h4>
-            <div style="font-size: 3em; font-weight: bold; margin: 15px 0;">
-                {grand_total:,.0f}
+        <div style="border: 2px solid black; padding: 0; text-align: center; margin-bottom: 10px;">
+            <div style="padding: 10px; font-weight: bold; background-color: white;">Total mitigation potential</div>
+            <div style="
+                background-color: #ccf7d6; 
+                padding: 30px 10px; 
+                color: black;">
+                <div style="font-size: 3em; font-weight: bold;">{grand_total:,.0f}</div>
+                <div style="font-size: 1.2em;">tCO₂ eq.</div>
             </div>
-            <div style="font-size: 1.2em;">tCO₂ eq.</div>
         </div>
         """, unsafe_allow_html=True)
 
         # C. Footer Timestamp
         today = datetime.date.today().strftime("%d/%m/%Y")
         st.markdown(f"""
-        <div style="text-align: center; font-size: 0.8em; color: gray; margin-top: 10px;">
+        <div style="text-align: center; font-size: 0.8em; color: black; font-style: italic;">
             Report generated by<br>
             <strong>{today}</strong>
         </div>
@@ -114,23 +120,25 @@ def render_results_module():
 
     # --- RIGHT COLUMN: CHART 2 (Percentage) ---
     with col_right:
-        st.subheader("Contribution by sector (%)")
-        if grand_total > 0:
-            fig2 = px.bar(
-                df_chart, 
-                x="Sector", 
-                y="Contribution (%)", 
-                color="Sector",
-                text_auto='.1f',
-                title="Relative Contribution (%)"
-            )
-            fig2.update_layout(
-                showlegend=False, 
-                height=400, 
-                yaxis_title="Percentage (%)",
-                yaxis_range=[0, 100]
-            )
-            st.plotly_chart(fig2, use_container_width=True)
-        else:
-            st.info("No data calculated yet.")
-            st.plotly_chart(px.bar(), use_container_width=True) # Empty placeholder
+        st.markdown("<h5 style='text-align: center;'>Mitigation potential by sector and activity</h5>", unsafe_allow_html=True)
+        
+        fig2 = px.bar(
+            df_chart, 
+            x="Sector", 
+            y="Contribution (%)", 
+            color="Sector",
+            text_auto='.1f'
+        )
+        fig2.update_layout(
+            showlegend=False, 
+            height=500,
+            margin=dict(l=20, r=20, t=20, b=20),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis_title="Sectors",
+            yaxis_title=None,
+            yaxis_range=[0, 100] # Fixed range 0-100% like screenshot
+        )
+        fig2.update_yaxes(showgrid=True, gridcolor='lightgray', zeroline=True, zerolinecolor='black')
+        
+        st.plotly_chart(fig2, use_container_width=True)
