@@ -12,7 +12,7 @@ try:
     CLIMATE = imported_data.CLIMATES
     MOISTURE = imported_data.MOISTURES
 except ImportError:
-    # Manual Defaults if import fails
+    # Manual Defaults
     SOIL_TYPE = [
         "Clay soils", 
         "Sandy soils", 
@@ -40,9 +40,10 @@ def render_general_info():
             st.text_input("User Name", key="gi_user_name")
             st.date_input("Date", key="gi_date", value=date.today())
             st.text_input("Project Name", key="gi_project_name")
-            st.text_input("Funding Agency", key="gi_funding_agency", value="CAFI")
+            # Removed default value="CAFI"
+            st.text_input("Funding Agency", key="gi_funding_agency")
             st.text_input("Executing Agency", key="gi_executing_agency")
-            st.number_input("Project Cost (USD)", key="gi_project_cost", step=1000)
+            st.number_input("Project Cost (USD)", key="gi_project_cost", step=1000, value=0)
 
         with col2:
             st.markdown("#### **Project Site & Environment**")
@@ -50,13 +51,28 @@ def render_general_info():
             # --- REGION & COUNTRY LOGIC ---
             region_list = ["Central Africa", "Southeast Asia", "South America"]
             
+            # Get current state
             current_reg = shared_state.get("gi_region")
-            reg_index = region_list.index(current_reg) if current_reg in region_list else 0
             
-            region = st.selectbox("Region", region_list, index=reg_index, key="region_selector")
+            # Determine index for selectbox (None if not set)
+            reg_index = region_list.index(current_reg) if current_reg in region_list else None
+            
+            region = st.selectbox(
+                "Region", 
+                region_list, 
+                index=reg_index, 
+                key="region_selector", 
+                placeholder="Select region..."
+            )
+            
+            # Update state if changed
             if region != shared_state.get("gi_region"): 
                 shared_state.set("gi_region", region)
+                # Reset country if region changes
+                shared_state.set("gi_country", None)
+                st.rerun()
             
+            # Define Country List based on Region
             if region == "Central Africa":
                 country_list = [
                     "Cameroon", 
@@ -74,22 +90,30 @@ def render_general_info():
                 country_list = []
 
             current_country = shared_state.get("gi_country")
-            cnt_index = country_list.index(current_country) if current_country in country_list else 0
+            cnt_index = country_list.index(current_country) if current_country in country_list else None
 
-            country = st.selectbox("Country", country_list, index=cnt_index, key="country_selector")
+            country = st.selectbox(
+                "Country", 
+                country_list, 
+                index=cnt_index, 
+                key="country_selector",
+                placeholder="Select country..."
+            )
             shared_state.set("gi_country", country)
             
             st.divider()
             
+            # Environment Dropdowns (Start Empty)
             e1, e2, e3 = st.columns(3)
-            e1.selectbox("Climate", CLIMATE, key="gi_climate")
-            e2.selectbox("Moisture", MOISTURE, key="gi_moisture")
-            e3.selectbox("Soil Type", SOIL_TYPE, key="gi_soil")
+            e1.selectbox("Climate", CLIMATE, key="gi_climate", index=None, placeholder="Select...")
+            e2.selectbox("Moisture", MOISTURE, key="gi_moisture", index=None, placeholder="Select...")
+            e3.selectbox("Soil Type", SOIL_TYPE, key="gi_soil", index=None, placeholder="Select...")
             st.divider()
             
+            # Years (Start at 0)
             d1, d2 = st.columns(2)
-            d1.number_input("Implementation (yrs)", value=4, key="gi_impl")
-            d2.number_input("Capitalization (yrs)", value=10, key="gi_cap")
+            d1.number_input("Implementation (yrs)", value=0, key="gi_impl")
+            d2.number_input("Capitalization (yrs)", value=0, key="gi_cap")
 
     # 2. ACTIVITIES REPORTED
     st.markdown("### 2. Activities Reported")
@@ -117,7 +141,7 @@ def render_general_info():
             st.checkbox("Transformation factories or equipment for sustainably sourced", value=False, key="act_forest_2")
             st.checkbox("Forest conservation", value=False, key="act_forest_3")
 
-    # 3. PARAMETERS
+    # 3. PARAMETERS (Read-only reference data)
     st.markdown("### 3. Parameters")
     
     def make_param_box(title, data_dict=None, custom_component=None):
