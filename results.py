@@ -1,20 +1,21 @@
 # results.py
 import streamlit as st
 import plotly.graph_objects as go
-import pandas as pd
 import datetime
 import shared_state
 
 def render_results_module():
     # --- 1. GATHER DATA ---
-    energy_total = shared_state.get("energy_grand_total", 0.0) or 0.0
-    arr_total = shared_state.get("arr_grand_total", 0.0) or 0.0
-    agri_total = shared_state.get("agri_grand_total", 0.0) or 0.0
-    forest_total = shared_state.get("forest_grand_total", 0.0) or 0.0
+    # We use .get() with 0.0 default to prevent errors if a page hasn't been visited
+    energy = shared_state.get("energy_grand_total", 0.0) or 0.0
+    arr = shared_state.get("arr_grand_total", 0.0) or 0.0
+    agri = shared_state.get("agri_grand_total", 0.0) or 0.0
+    forest = shared_state.get("forest_grand_total", 0.0) or 0.0
     
-    grand_total = energy_total + arr_total + agri_total + forest_total
+    grand_total = energy + arr + agri + forest
 
-    project_info = {
+    # Project Information
+    info = {
         "Project": shared_state.get("project_name", "-"),
         "Executing agency": shared_state.get("executing_agency", "-"),
         "Funding agency": shared_state.get("funding_agency", "-"),
@@ -23,60 +24,92 @@ def render_results_module():
         "Project duration": f"{shared_state.get('project_duration', '0')} years"
     }
 
+    # Prepare Data for Charts
     sectors = ["Energy", "Afforestation & Restoration", "Agriculture", "Forestry & Conservation"]
-    values = [energy_total, arr_total, agri_total, forest_total]
+    values = [energy, arr, agri, forest]
     
+    # Calculate percentages safe from divide-by-zero
     if grand_total > 0:
-        percentages = [(v / grand_total) * 100 for v in values]
+        percents = [(v / grand_total) * 100 for v in values]
     else:
-        percentages = [0.0] * 4
+        percents = [0.0] * 4
 
     # --- 2. LAYOUT ---
+    # Create 3 columns matching your screenshot: Chart | Info | Chart
     col_left, col_mid, col_right = st.columns([1.5, 1, 1.5])
 
-    # --- LEFT CHART ---
+    # --- LEFT COLUMN: Absolute Chart ---
     with col_left:
         st.markdown("<h6 style='text-align: center; color: #555;'>Mitigation potential by sector and activity</h6>", unsafe_allow_html=True)
-        fig1 = go.Figure(data=[go.Bar(
-            x=sectors, y=values, marker_color='#F4A261',
-            text=[f"{v:,.0f}" for v in values], textposition='auto'
-        )])
-        fig1.update_layout(showlegend=False, height=500, margin=dict(t=30), paper_bgcolor='white', plot_bgcolor='white')
-        fig1.update_yaxes(showgrid=True, gridcolor='#eee')
+        
+        fig1 = go.Figure(data=[
+            go.Bar(
+                x=sectors,
+                y=values,
+                marker_color='#F4A261', # Orange color from screenshot
+                text=[f"{v:,.0f}" if v > 0 else "" for v in values],
+                textposition='auto',
+            )
+        ])
+        
+        fig1.update_layout(
+            showlegend=False, 
+            height=500,
+            margin=dict(t=30),
+            paper_bgcolor='white',
+            plot_bgcolor='white'
+        )
+        fig1.update_yaxes(showgrid=True, gridcolor='#eee', zeroline=True, zerolinecolor='black')
+        
         st.plotly_chart(fig1, use_container_width=True)
 
-    # --- MIDDLE INFO ---
+
+    # --- MIDDLE COLUMN: Info & Green Box ---
     with col_mid:
-        # Info Table
-        table_html = """<style>.info-table {width:100%; border-collapse:collapse; font-size:0.85em; border:2px solid black;} .info-table td {border:1px solid black; padding:8px; text-align:center;} .info-label {background-color:#f2f2f2; font-weight:bold;} .info-val {color:#007bff; font-style:italic;}</style><table class="info-table">"""
-        for k, v in project_info.items():
-            table_html += f"<tr><td class='info-label'>{k}</td><td class='info-val'>{v}</td></tr>"
+        # 1. Project Info Table
+        # Styled to match the blue text/borders in your image
+        table_html = """
+        <style>
+            .it {width: 100%; border-collapse: collapse; border: 2px solid black; font-family: sans-serif; font-size: 0.85em; margin-bottom: 20px;}
+            .it td {border: 1px solid black; padding: 6px; text-align: center;}
+            .label {background-color: #f2f2f2; font-weight: bold; width: 45%;}
+            .val {color: #007bff; font-style: italic;}
+        </style>
+        <table class="it">
+        """
+        for key, value in info.items():
+            val_display = value if value else "-"
+            table_html += f"<tr><td class='label'>{key}</td><td class='val'>{val_display}</td></tr>"
         table_html += "</table>"
+        
         st.markdown(table_html, unsafe_allow_html=True)
         
-        st.write("")
-
-        # Green Box
+        # 2. Green Total Box
         st.markdown(f"""
         <div style="border: 2px solid black; text-align: center; margin-bottom: 20px;">
-            <div style="padding: 10px; font-weight: bold; background: white; border-bottom: 1px solid #ddd;">Total mitigation potential</div>
-            <div style="background-color: #ccf7d6; padding: 40px 10px;">
+            <div style="padding: 10px; font-weight: bold; background-color: white; border-bottom: 1px solid #ddd;">Total mitigation potential</div>
+            <div style="background-color: #ccf7d6; padding: 40px 10px; color: black;">
                 <div style="font-size: 3em; font-weight: bold;">{grand_total:,.0f}</div>
                 <div style="font-size: 1.2em;">tCO₂ eq.</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Footer
-        st.markdown(f"<div style='text-align:center; font-size:0.8em; font-style:italic; background:#f9f9f9; padding:10px;'>Report generated by<br><strong>{datetime.date.today().strftime('%d/%m/%Y')}</strong></div>", unsafe_allow_html=True)
+        # 3. Footer
+        today = datetime.date.today().strftime("%d/%m/%Y")
+        st.markdown(f"""
+        <div style="text-align: center; font-size: 0.8em; font-style: italic; background-color: #f9f9f9; padding: 10px;">
+            Report generated by<br><strong>{today}</strong>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # --- RIGHT CHART ---
+
+    # --- RIGHT COLUMN: Percentage Chart ---
     with col_right:
         st.markdown("<h6 style='text-align: center; color: #555;'>Mitigation potential by sector and activity</h6>", unsafe_allow_html=True)
-        fig2 = go.Figure(data=[go.Bar(
-            x=sectors, y=percentages, marker_color='#F4A261',
-            text=[f"{p:.1f}%" for p in percentages], textposition='auto'
-        )])
-        fig2.update_layout(showlegend=False, height=500, margin=dict(t=30), paper_bgcolor='white', plot_bgcolor='white', yaxis=dict(range=[0, 100]))
-        fig2.update_yaxes(showgrid=True, gridcolor='#eee', ticksuffix="%")
-        st.plotly_chart(fig2, use_container_width=True)
+        
+        fig2 = go.Figure(data=[
+            go.Bar(
+                x=sectors,
+                y=percents,
+                marker_color='#F4A
