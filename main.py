@@ -1,5 +1,6 @@
 # main.py
 import streamlit as st
+import importlib # Required to force reload of modules
 import shared_state
 
 # Import all modules
@@ -8,7 +9,16 @@ import energy
 import arr
 import agri
 import forest
-import results  # <--- Make sure this is imported
+import results 
+
+# --- FORCE RELOAD MODULES ---
+# This ensures that if you change code in results.py, Streamlit sees it immediately.
+importlib.reload(results)
+importlib.reload(start_page)
+importlib.reload(energy)
+importlib.reload(arr)
+importlib.reload(agri)
+importlib.reload(forest)
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -18,11 +28,9 @@ st.set_page_config(
 )
 
 # --- NAVIGATION ---
-# Initialize session state for navigation if not present
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "0 Start"
 
-# Define the list of pages
 pages = [
     "0 Start", 
     "1 Energy", 
@@ -32,7 +40,6 @@ pages = [
     "Results"
 ]
 
-# Create a horizontal navigation menu
 selected_page = st.radio(
     "Navigation", 
     pages, 
@@ -41,7 +48,6 @@ selected_page = st.radio(
     label_visibility="collapsed"
 )
 
-# Update session state if changed via radio button
 if selected_page != st.session_state["current_page"]:
     st.session_state["current_page"] = selected_page
     st.rerun()
@@ -65,5 +71,4 @@ elif selected_page == "4 Forestry & Conservation":
     forest.render_forest_module()
 
 elif selected_page == "Results":
-    # This MUST call the function from results.py
     results.render_results_module()
