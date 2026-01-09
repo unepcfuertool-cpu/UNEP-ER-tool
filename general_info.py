@@ -40,10 +40,11 @@ def render_general_info():
             st.text_input("User Name", key="gi_user_name")
             st.date_input("Date", key="gi_date", value=date.today())
             st.text_input("Project Name", key="gi_project_name")
-            # Removed default value="CAFI"
             st.text_input("Funding Agency", key="gi_funding_agency")
             st.text_input("Executing Agency", key="gi_executing_agency")
-            st.number_input("Project Cost (USD)", key="gi_project_cost", step=1000, value=0)
+            
+            # FIXED: Removed 'value=0' because it is already initialized in shared_state
+            st.number_input("Project Cost (USD)", key="gi_project_cost", step=1000)
 
         with col2:
             st.markdown("#### **Project Site & Environment**")
@@ -112,8 +113,9 @@ def render_general_info():
             
             # Years (Start at 0)
             d1, d2 = st.columns(2)
-            d1.number_input("Implementation (yrs)", value=0, key="gi_impl")
-            d2.number_input("Capitalization (yrs)", value=0, key="gi_cap")
+            # FIXED: Removed 'value=0' here as well
+            d1.number_input("Implementation (yrs)", key="gi_impl", step=1)
+            d2.number_input("Capitalization (yrs)", key="gi_cap", step=1)
 
     # 2. ACTIVITIES REPORTED
     st.markdown("### 2. Activities Reported")
